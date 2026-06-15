@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sentinel DAST - Dashboard</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <script src="js/main.js" defer></script>
+  <style>
+    .dashboard-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.5rem 2rem;
+      border-bottom: 1px solid var(--bg-accent);
+      background: var(--bg-primary);
+    }
+    .scan-controls {
+      display: flex;
+      gap: 1rem;
+    }
+    .scan-controls input {
+      width: 300px;
+    }
+    .dashboard-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+    .export-dropdown {
+      position: relative;
+      display: inline-block;
+    }
+    .export-btn {
+      background: var(--bg-secondary);
+      border: 1px solid var(--bg-accent);
+      color: var(--text-main);
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .export-content {
+      display: none;
+      position: absolute;
+      right: 0;
+      top: 100%;
+      padding-top: 8px;
+      z-index: 50;
+    }
+    .export-menu-inner {
+      background-color: var(--bg-secondary);
+      min-width: 200px;
+      box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.5);
+      border: 1px solid var(--bg-accent);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .export-dropdown:hover .export-content { display: block; }
+    .export-menu-inner a {
+      color: var(--text-primary);
+      padding: 12px 16px;
+      text-decoration: none;
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+    }
+    .export-menu-inner a:hover { background-color: rgba(255,255,255,0.05); }
+    .export-menu-inner a.pro-item { color: var(--text-muted); }
+    
+    .bento-grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .bento-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--bg-accent);
+      border-radius: 8px;
+      padding: 1.25rem;
+    }
+    .col-span-4 { grid-column: span 4; }
+    .col-span-8 { grid-column: span 8; }
+    .col-span-6 { grid-column: span 6; }
+    
+    .card-title {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--text-main);
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      padding-bottom: 0.5rem;
+    }
+    
+    .data-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      font-size: 0.9rem;
+    }
+    .data-row:last-child { border-bottom: none; }
+    .data-label { color: var(--text-muted); }
+    
+    .gauge-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 120px;
+    }
+    .gauge {
+      width: 150px;
+      height: 75px;
+      background: rgba(255,255,255,0.05);
+      border-top-left-radius: 150px;
+      border-top-right-radius: 150px;
+      position: relative;
+    }
+    .gauge-center {
+      position: absolute;
+      bottom: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 120px; height: 60px;
+      background: var(--bg-secondary);
+      border-top-left-radius: 120px;
+      border-top-right-radius: 120px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      padding-bottom: 0.5rem;
+    }
+    .gauge-score { font-size: 1.5rem; font-weight: 700; line-height: 1; }
+    .gauge-score span { font-size: 0.85rem; color: var(--text-muted); font-weight: 400; }
+    .gauge-grade { font-size: 0.85rem; margin-top: 4px;}
+    .gauge-grade span { color: var(--brand-amber); font-weight: 700; }
+    
+    #loading-overlay {
+      position: fixed;
+      top:0; left:0; right:0; bottom:0;
+      background: rgba(15, 23, 42, 0.95);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      display: none;
+    }
+    .log-window {
+      width: 600px;
+      height: 300px;
+      padding: 1rem;
+      font-family: monospace;
+      color: var(--brand-emerald);
+      overflow-y: auto;
+      font-size: 1rem;
+      line-height: 1.6;
+    }
+    .history-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    .history-table th, .history-table td {
+      padding: 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid var(--bg-accent);
+      font-size: 0.9rem;
+    }
+    .history-table th { color: var(--text-muted); font-weight: 500; }
+    
+    details {
+        background: rgba(0,0,0,0.2);
+        padding: 0.5rem;
+        border-radius: 4px;
+        margin-top: 0.5rem;
+    }
+    summary { cursor: pointer; color: var(--brand-blue); font-size: 0.85rem; }
+    pre.blueprint { font-family: monospace; font-size: 0.8rem; color: #cbd5e1; margin-top: 0.5rem; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <a href="index.html" class="navbar-brand">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+      Sentinel DAST
+    </a>
+    <div class="scan-controls">
+      <input type="text" id="target-input" class="input-field" placeholder="example.com" />
+      <button class="btn btn-primary" onclick="startScan()">New Scan</button>
+    </div>
+  </nav>
+
+  <div id="loading-overlay">
+    <div class="log-window" id="log-feed"></div>
+  </div>
+
+  <div class="container" id="dashboard-content" style="display:none;">
+    <div class="dashboard-title-row">
+      <h2>Executive Summary Profile</h2>
+      <div class="export-dropdown">
+        <button class="export-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          Export Report 
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+        <div class="export-content">
+          <div class="export-menu-inner">
+            <a href="#">Download PDF (Free)</a>
+            <a href="#" class="pro-item">Raw JSON (Pro) <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></a>
+            <a href="#" class="pro-item">PNG Image (Pro) <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bento-grid">
+      <!-- Target Metadata Grid -->
+      <div class="bento-card col-span-4">
+        <div class="card-title">Target Metadata Grid</div>
+        <div class="data-row"><span class="data-label">Domain</span><span id="meta-domain">-</span></div>
+        <div class="data-row"><span class="data-label">IP Address</span><span id="meta-ip">-</span></div>
+        <div class="data-row"><span class="data-label">Duration</span><span id="meta-duration">-</span></div>
+        <div class="data-row"><span class="data-label">UTC Timestamp</span><span id="meta-time">-</span></div>
+      </div>
+
+      <!-- Compliance Score -->
+      <div class="bento-card col-span-4">
+        <div class="card-title text-center">Circular Compliance Score Gauge</div>
+        <div class="gauge-container">
+          <div class="gauge" id="gauge-container-bg">
+            <div class="gauge-center">
+              <div class="gauge-score" id="gauge-score">0<span>/100</span></div>
+              <div class="gauge-grade">Grade <span id="gauge-grade">F</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Cross Origin -->
+      <div class="bento-card col-span-4">
+        <div class="card-title">Cross-Origin Security</div>
+        <div class="data-row"><span class="data-label">Status</span><span id="cors-status" class="badge badge-CLOSED">-</span></div>
+        <div style="font-size:0.8rem; color:var(--text-muted); margin-top:0.5rem;" id="cors-details"></div>
+      </div>
+
+      <!-- Network Port Map -->
+      <div class="bento-card col-span-4">
+        <div class="card-title">Network Port Map</div>
+        <div id="port-map-content"></div>
+      </div>
+
+      <!-- Database & Input Sanitization -->
+      <div class="bento-card col-span-4 pro-lock" id="sanitization-card">
+        <div class="card-title">Database & Input Sanitization</div>
+        <div id="sanitization-content" style="filter: blur(4px);">
+          <div class="data-row"><span class="data-label">Database</span><span class="badge badge-SECURE">SECURE</span></div>
+          <div class="data-row"><span class="data-label">Parameter Validation</span><span class="badge badge-SECURE">SECURE</span></div>
+        </div>
+        <div class="pro-lock-overlay" id="sanitization-lock">
+          <span style="border-image: linear-gradient(to right, var(--brand-emerald), var(--brand-blue)) 1; background: rgba(15, 23, 42, 0.95); padding: 1.5rem; flex-direction: column; align-items: center; gap: 0.5rem; text-align: center; border-width: 2px;">
+            <svg style="color: var(--brand-emerald);" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            <strong style="color: transparent; background-clip: text; -webkit-background-clip: text; background-image: linear-gradient(90deg, var(--brand-emerald), var(--brand-blue)); font-size: 1.1rem; letter-spacing: 0.5px;">Premium Security Feature</strong>
+            <div style="font-size: 0.85rem; color: var(--text-muted); max-width: 250px;">Unlock detailed active vulnerability reports and remediation rules.</div>
+            <a href="pricing.html" class="btn btn-emerald" style="margin-top: 0.5rem; font-size: 0.8rem; padding: 0.25rem 0.75rem;">Upgrade to Pro</a>
+          </span>
+        </div>
+      </div>
+
+      <!-- Exposed Resource Inventory -->
+      <div class="bento-card col-span-4">
+        <div class="card-title">Exposed Resource Inventory</div>
+        <div id="exposed-resources-content"></div>
+      </div>
+
+      <!-- HTTP Compliance Headers -->
+      <div class="bento-card col-span-4">
+        <div class="card-title">HTTP Compliance Headers</div>
+        <div id="headers-content"></div>
+      </div>
+      
+      <div class="bento-card col-span-8">
+        <div class="card-title">📆 Historical Compliance Assessments & Logs</div>
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Target Domain</th>
+              <th>Score</th>
+              <th>Letter Grade</th>
+            </tr>
+          </thead>
+          <tbody id="history-table-body">
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      // Check query param for auto scan
+      const urlParams = new URLSearchParams(window.location.search);
+      const target = urlParams.get('target');
+      if (target) {
+        document.getElementById('target-input').value = target;
+        startScan();
+      }
+      
+      loadHistory();
+    });
+
+    async function startScan() {
+      const target = document.getElementById("target-input").value;
+      if (!target) return;
+
+      const overlay = document.getElementById("loading-overlay");
+      const logFeed = document.getElementById("log-feed");
+      const content = document.getElementById("dashboard-content");
+      
+      overlay.style.display = "flex";
+      content.style.display = "none";
+      logFeed.innerHTML = "";
+      
+      const logs = [
+        "[➔] Initializing core pipeline security handshake matrices...",
+        "[➔] Resolving target infrastructure network IP profiles...",
+        "[➔] Testing transport layer redirection integrity models...",
+        "[➔] Auditing passive configuration HTTP header parameters...",
+        "[➔] Executing Deep Subsystem Telemetry..."
+      ];
+      
+      let logIndex = 0;
+      let charIndex = 0;
+      let currentLineDiv = null;
+      
+      logFeed.innerHTML = "";
+      
+      const typeWriter = () => {
+        if (logIndex >= logs.length) return;
+        
+        if (charIndex === 0) {
+            currentLineDiv = document.createElement("div");
+            logFeed.appendChild(currentLineDiv);
+        }
+        
+        currentLineDiv.innerHTML += logs[logIndex].charAt(charIndex);
+        logFeed.scrollTop = logFeed.scrollHeight;
+        charIndex++;
+        
+        if (charIndex >= logs[logIndex].length) {
+            charIndex = 0;
+            logIndex++;
+            setTimeout(typeWriter, 400); // pause between lines
+        } else {
+            setTimeout(typeWriter, 15); // speed of typing
+        }
+      };
+      
+      typeWriter();
+
+      try {
+        const res = await fetch("http://127.0.0.1:8002/api/v1/compliance", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ target_url: target })
+        });
+        
+        if (!res.ok) {
+          const data = await res.json();
+          alert(`Pipeline Interrupted: ${data.detail || "Server Error"}`);
+          overlay.style.display = "none";
+          return;
+        }
+
+        const data = await res.json();
+        overlay.style.display = "none";
+        content.style.display = "block";
+        renderDashboard(data);
+        loadHistory();
+        
+      } catch (error) {
+        alert("Execution Pipeline Interrupted: Failed to fetch. Ensure backend is live.");
+        overlay.style.display = "none";
+      }
+    }
+
+    function renderDashboard(data) {
+      // Check Pro status
+      const isPro = window.currentUser && window.currentUser.is_pro === 1;
+
+      // Metadata
+      document.getElementById('meta-domain').innerText = data.target;
+      document.getElementById('meta-ip').innerText = `[${data.resolved_ip}]`;
+      document.getElementById('meta-duration').innerText = `[${data.execution_duration_seconds}s]`;
+      document.getElementById('meta-time').innerText = new Date().toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
+
+      // Gauge
+      const score = data.compliance_score.score;
+      document.getElementById('gauge-score').innerHTML = `${score}<span>/100</span>`;
+      document.getElementById('gauge-grade').innerText = data.compliance_score.grade;
+      
+      let color = 'var(--brand-rose)';
+      if(score >= 90) color = 'var(--brand-emerald)';
+      else if(score >= 70) color = 'var(--brand-amber)';
+      
+      const turns = (score / 100) * 0.5;
+      document.getElementById('gauge-container-bg').style.background = `conic-gradient(from -90deg at 50% 100%, ${color} 0turn, ${color} ${turns}turn, rgba(255,255,255,0.05) ${turns}turn)`;
+      document.getElementById('gauge-grade').style.color = color;
+
+      // Cross Origin
+      document.getElementById('cors-status').innerText = data.cross_origin_security.status;
+      document.getElementById('cors-status').className = `badge badge-${data.cross_origin_security.status}`;
+      
+      if(isPro) {
+          document.getElementById('cors-details').innerText = data.cross_origin_security.details;
+      } else {
+          document.getElementById('cors-details').innerHTML = `<div class="pro-lock-overlay" style="position:relative; height:40px; border-radius:6px; margin-top:0.5rem;"><span style="font-size:0.75rem;"><svg style="color:var(--brand-emerald);" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> <strong style="color:var(--brand-emerald);">Pro Threat Analysis Locked</strong></span></div>`;
+      }
+
+      // Network Ports
+      let portsHtml = '';
+      data.port_metrics.forEach(p => {
+        if (!isPro && p.port !== 80 && p.port !== 443) {
+            // Hide non-standard ports for free users
+            return;
+        }
+        portsHtml += `<div class="data-row">
+          <span class="data-label" style="${p.status==='OPEN' ? 'color:var(--brand-amber);' : ''}">${p.port}</span>
+          <span class="badge badge-${p.status}">${p.status}</span>
+        </div>`;
+      });
+      if (!isPro) {
+          portsHtml += `<div class="pro-lock-overlay" style="position:relative; height:60px; border-radius:6px; margin-top:0.5rem;"><span style="font-size:0.85rem; border: 1px solid rgba(16, 185, 129, 0.4); background: rgba(15,23,42,0.9);"><svg style="color:var(--brand-emerald);" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> <strong style="color:var(--brand-emerald);">Full Perimeter Map Locked.</strong> <a href="pricing.html" style="color:white; margin-left:4px;">Upgrade to Pro</a></span></div>`;
+      }
+      document.getElementById('port-map-content').innerHTML = portsHtml;
+
+      // Sanitization
+      if(isPro) {
+        document.getElementById('sanitization-content').style.filter = 'none';
+        document.getElementById('sanitization-lock').style.display = 'none';
+        let sanHtml = '';
+        for(const [key, val] of Object.entries(data.input_validation)) {
+            sanHtml += `<div class="data-row"><span class="data-label">${key}</span><span class="badge badge-${val.status}">${val.status}</span></div>`;
+        }
+        document.getElementById('sanitization-content').innerHTML = sanHtml;
+      } else {
+        document.getElementById('sanitization-content').style.filter = 'blur(4px)';
+        document.getElementById('sanitization-lock').style.display = 'flex';
+      }
+
+      // Exposed Resources
+      let expHtml = '';
+      data.exposed_directories.forEach(d => {
+        expHtml += `<div style="margin-bottom:1rem;">
+          <div style="margin-bottom:0.25rem;">${d.path}</div>`;
+        
+        if(!isPro && d.status === 'EXPOSED') {
+            expHtml += `<div class="pro-lock-overlay" style="position:relative; height:60px; border-radius:6px; margin-top:0.5rem;">
+                <span style="font-size:0.85rem; border: 1px solid rgba(16, 185, 129, 0.4); background: rgba(15,23,42,0.9);"><svg style="color:var(--brand-emerald);" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> <strong style="color:var(--brand-emerald); font-weight:500;">Premium Feature.</strong> <a href="pricing.html" style="color:white; margin-left:4px;">Upgrade to Pro</a></span>
+            </div></div>`;
+        } else {
+            expHtml += `<span class="badge badge-${d.status}">${d.status}</span>
+            <div style="font-size:0.8rem; color:var(--text-muted); margin-top:0.25rem;">${d.details}</div>
+            </div>`;
+        }
+      });
+      document.getElementById('exposed-resources-content').innerHTML = expHtml;
+
+      // Headers
+      let headersHtml = '';
+      for(const [key, val] of Object.entries(data.headers.headers)) {
+        const status = val.present ? "PASS" : "MISSING";
+        headersHtml += `<div class="data-row" style="flex-direction:column; align-items:stretch;">
+          <div style="display:flex; justify-content:space-between;">
+            <span class="data-label">${key}</span>
+            <span class="badge badge-${status === 'PASS' ? 'PASS' : 'FAIL'}">${status}</span>
+          </div>`;
+        
+        if(!val.present) {
+            if(isPro) {
+                headersHtml += `<details><summary>📋 View Architecture Hardening Blueprint</summary><pre class="blueprint">${val.mitigation}</pre></details>`;
+            } else {
+                headersHtml += `<details><summary style="color:var(--text-muted);">🔒 <span style="background-image: linear-gradient(90deg, var(--brand-emerald), var(--brand-blue)); -webkit-background-clip: text; color: transparent;">Premium Architecture Blueprint (Locked)</span></summary></details>`;
+            }
+        }
+        headersHtml += `</div>`;
+      }
+      document.getElementById('headers-content').innerHTML = headersHtml;
+    }
+
+    async function loadHistory() {
+      try {
+        const res = await fetch("http://127.0.0.1:8002/api/v1/history");
+        if(res.ok) {
+          const data = await res.json();
+          let html = '';
+          data.forEach(row => {
+             const dt = new Date(row.timestamp).toISOString().replace('T', ' ').substring(0, 19);
+             html += `<tr>
+               <td>${dt} UTC</td>
+               <td>${row.target_domain}</td>
+               <td>${row.compliance_score}</td>
+               <td><span class="badge badge-${row.performance_grade}">${row.performance_grade}</span></td>
+             </tr>`;
+          });
+          document.getElementById('history-table-body').innerHTML = html;
+        }
+      } catch (e) { console.error(e); }
+    }
+  </script>
+</body>
+</html>

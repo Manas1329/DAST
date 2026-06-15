@@ -5,7 +5,10 @@ from datetime import datetime
 import time
 import sqlite3
 import requests
-from fastapi import FastAPI, HTTPException
+import hashlib
+import os
+import secrets
+from fastapi import FastAPI, HTTPException, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -22,6 +25,15 @@ app.add_middleware(
 class ComplianceRequest(BaseModel):
     target_url: str
 
+class RegisterRequest(BaseModel):
+    username: str
+    email: str
+    password: str
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
 # Database Initialization
 def init_db():
     conn = sqlite3.connect('compliance_history.db')
@@ -32,8 +44,42 @@ def init_db():
                   compliance_score INTEGER,
                   performance_grade TEXT,
                   timestamp TEXT)''')
+                  
+    c.execute('''CREATE TABLE IF NOT EXISTS users
+                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  username TEXT UNIQUE,
+                  email TEXT UNIQUE,
+                  password_hash BLOB,
+                  salt BLOB,
+                  is_pro BOOLEAN DEFAULT 0)''')
+                  
+    c.execute('''CREATE TABLE IF NOT EXISTS sessions
+                 (token TEXT PRIMARY KEY,
+                  user_id INTEGER,
+                  expires_at TEXT)''')
+                  
     conn.commit()
     conn.close()
+
+def hash_password(password: str, salt: bytes = None):
+    if salt is None:
+        salt = os.urandom(16)
+    pwd_hash = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt, 100000)
+    return pwd_hash, salt
+
+def get_current_user(authorization: str = Header(None)):
+    if not authorization or not authorization.startswith("Bearer "):
+        return None
+    token = authorization.split(" ")[1]
+    
+    conn = sqlite3.connect('compliance_history.db')
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute("SELECT u.id, u.username, u.email, u.is_pro FROM sessions s JOIN users u ON s.user_id = u.id WHERE s.token = ? AND s.expires_at > ?", 
+              (token, datetime.utcnow().isoformat()))
+    user = c.fetchone()
+    conn.close()
+    return dict(user) if user else None
 
 init_db()
 
@@ -227,7 +273,7 @@ def verify_https_redirection(domain: str) -> dict:
         return {"status": "FAIL", "details": f"Request failed: {str(e)}"}
 
 def audit_session_cookies(url: str) -> dict:
-    """Sends a GET request and parses 'Set-Cookie' header arrays for 'httponly' and 'secure' attributes."""
+    """Sends a GET request and parses 'Set-Cookie' header arrays for 'httponly', 'secure', and 'samesite' attributes."""
     if not url.startswith('http'):
         url = 'https://' + url
         
@@ -236,26 +282,51 @@ def audit_session_cookies(url: str) -> dict:
         raw_cookies = response.headers.get('Set-Cookie')
         
         if not raw_cookies:
-            return {"status": "PASS", "details": "No stateful tracking cookies dropped during initialization lifecycle."}
+            return {"status": "SECURE", "details": "No stateful tracking cookies dropped during initialization lifecycle."}
             
         raw_cookies_lower = raw_cookies.lower()
         has_secure = 'secure' in raw_cookies_lower
         has_httponly = 'httponly' in raw_cookies_lower
+        has_samesite = 'samesite=lax' in raw_cookies_lower or 'samesite=strict' in raw_cookies_lower
         
-        if has_secure and has_httponly:
-            return {"status": "PASS", "details": "Cookies properly restricted with Secure and HttpOnly flags."}
+        if has_secure and has_httponly and has_samesite:
+            return {"status": "SECURE", "details": "Cookies properly restricted with Secure, HttpOnly, and SameSite flags."}
         else:
             missing = []
             if not has_secure: missing.append("Secure")
             if not has_httponly: missing.append("HttpOnly")
-            return {"status": "FAIL", "details": f"Cookies missing required constraints: {', '.join(missing)}."}
+            if not has_samesite: missing.append("SameSite")
+            return {"status": "VULNERABLE", "details": f"Cookies missing required constraints: {', '.join(missing)}."}
             
     except requests.RequestException as e:
-        return {"status": "FAIL", "details": f"Request failed: {str(e)}"}
+        return {"status": "VULNERABLE", "details": f"Request failed: {str(e)}"}
 
-def calculate_compliance_score(missing_headers_count: int, network_issues: int, directory_leaks: int) -> dict:
+def audit_cross_origin_security(url: str) -> dict:
+    """Audits the server response headers for insecure cross-origin configurations and unknown CDNs."""
+    if not url.startswith('http'):
+        url = 'https://' + url
+        
+    try:
+        response = requests.get(url, timeout=5, allow_redirects=True)
+        headers = response.headers
+        
+        acao = headers.get('Access-Control-Allow-Origin', '')
+        if acao == '*':
+            return {"status": "VULNERABLE", "details": "Access-Control-Allow-Origin header configured with dangerous wildcard symbol ('*')."}
+            
+        content = response.text.lower()
+        untrusted_cdns = ["polyfill.io", "bootcss.com"]
+        for cdn in untrusted_cdns:
+            if cdn in content:
+                return {"status": "VULNERABLE", "details": f"Page includes external scripts from potentially untrusted CDN: {cdn}"}
+        
+        return {"status": "SECURE", "details": "Cross-Origin headers secure and no untrusted third-party scripts detected."}
+    except requests.RequestException as e:
+        return {"status": "VULNERABLE", "details": f"Request failed: {str(e)}"}
+
+def calculate_compliance_score(missing_headers_count: int, network_issues: int, session_issues: int, directory_leaks: int) -> dict:
     """Dynamically calculates balanced integrity ratings using weighted configuration parameters."""
-    deductions = (missing_headers_count * 10) + (network_issues * 15) + (directory_leaks * 20)
+    deductions = (missing_headers_count * 10) + (network_issues * 15) + (session_issues * 15) + (directory_leaks * 20)
     score = max(0, 100 - deductions)
     
     if score >= 90: grade = "A"
@@ -268,6 +339,7 @@ def calculate_compliance_score(missing_headers_count: int, network_issues: int, 
 
 @app.post("/api/v1/compliance")
 def run_compliance_check(request: ComplianceRequest):
+    start_time = time.time()
     url = request.target_url
     
     parsed = urllib.parse.urlparse(url if url.startswith('http') else 'https://' + url)
@@ -288,23 +360,29 @@ def run_compliance_check(request: ComplianceRequest):
     input_sanitization = analyze_input_sanitization(url)
     https_redirection = verify_https_redirection(domain)
     session_cookies = audit_session_cookies(url)
+    cross_origin_security = audit_cross_origin_security(url)
     
     # Count structural metric failures to feed weighted scoring algorithms
     open_risky_ports = sum(1 for p in network_services if p["status"] == "OPEN" and p["severity"] == "HIGH")
     directory_leaks = sum(1 for d in exposed_paths if d["status"] == "EXPOSED" and d["severity"] == "HIGH")
+    session_vulnerabilities = 1 if session_cookies.get("status") == "VULNERABLE" else 0
     
     compliance = calculate_compliance_score(
         header_audit.get("missing_count", 0), 
-        open_risky_ports, 
+        open_risky_ports,
+        session_vulnerabilities,
         directory_leaks
     )
         
     # Persist metrics to SQLite history log
     log_scan_result(domain, compliance["score"], compliance["grade"])
     
+    execution_duration = round(time.time() - start_time, 3)
+    
     return {
         "target": url,
         "resolved_ip": resolved_ip,
+        "execution_duration_seconds": execution_duration,
         "compliance_score": compliance,
         "headers": header_audit,
         "ssl": ssl_validity,
@@ -312,7 +390,8 @@ def run_compliance_check(request: ComplianceRequest):
         "port_metrics": network_services,
         "input_validation": input_sanitization,
         "https_redirection": https_redirection,
-        "session_cookies": session_cookies
+        "session_cookies": session_cookies,
+        "cross_origin_security": cross_origin_security
     }
 
 @app.get("/api/v1/history")
@@ -328,6 +407,56 @@ def get_compliance_history():
         return [dict(row) for row in rows]
     except Exception as e:
         return {"error": str(e)}
+
+@app.post("/api/v1/register")
+def register_user(req: RegisterRequest):
+    pwd_hash, salt = hash_password(req.password)
+    try:
+        conn = sqlite3.connect('compliance_history.db')
+        c = conn.cursor()
+        c.execute("INSERT INTO users (username, email, password_hash, salt, is_pro) VALUES (?, ?, ?, ?, ?)",
+                  (req.username, req.email, pwd_hash, salt, 0)) # Default free tier
+        conn.commit()
+        conn.close()
+        return {"status": "success", "message": "User registered successfully"}
+    except sqlite3.IntegrityError:
+        raise HTTPException(status_code=400, detail="Username or email already exists")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/v1/login")
+def login_user(req: LoginRequest):
+    conn = sqlite3.connect('compliance_history.db')
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute("SELECT id, password_hash, salt FROM users WHERE username = ? OR email = ?", (req.username, req.username))
+    user = c.fetchone()
+    
+    if not user:
+        conn.close()
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+        
+    pwd_hash, _ = hash_password(req.password, user['salt'])
+    if pwd_hash != user['password_hash']:
+        conn.close()
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+        
+    token = secrets.token_hex(32)
+    # Expires in 24 hours
+    import datetime as dt
+    expires_at = (datetime.utcnow() + dt.timedelta(days=1)).isoformat()
+    
+    c.execute("INSERT INTO sessions (token, user_id, expires_at) VALUES (?, ?, ?)", (token, user['id'], expires_at))
+    conn.commit()
+    conn.close()
+    
+    return {"token": token}
+
+@app.get("/api/v1/me")
+def get_me(user: dict = Depends(get_current_user)):
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    return user
 
 if __name__ == "__main__":
     import uvicorn

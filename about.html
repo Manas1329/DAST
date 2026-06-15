@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sentinel DAST - About & Contact</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <script src="js/main.js" defer></script>
+  <style>
+    .about-layout {
+      display: grid;
+      grid-template-columns: 160px 1fr 160px;
+      gap: 2rem;
+      padding: 2rem;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    .ad-vertical {
+      width: 160px;
+      height: 600px;
+      border: 1px dashed var(--bg-accent);
+      background: rgba(0,0,0,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 1rem;
+      color: var(--text-muted);
+      font-family: monospace;
+      font-size: 0.85rem;
+      border-radius: 6px;
+    }
+    .main-content {
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+    .about-box {
+      background: var(--bg-secondary);
+      border: 1px solid var(--bg-accent);
+      border-radius: 12px;
+      padding: 3rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .about-box::after {
+      content: "";
+      position: absolute;
+      top: 0; right: 0; bottom: 0; width: 30%;
+      background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.05));
+      pointer-events: none;
+    }
+    .about-box h2 {
+      font-size: 2.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .contact-layout {
+      display: grid;
+      grid-template-columns: 1fr 250px;
+      gap: 2rem;
+    }
+    .contact-form textarea {
+      resize: vertical;
+      min-height: 120px;
+    }
+    .support-channels {
+      background: rgba(15, 23, 42, 0.4);
+      padding: 1.5rem;
+      border-radius: 8px;
+      border: 1px solid var(--bg-accent);
+    }
+    .support-item {
+      margin-bottom: 1.5rem;
+    }
+    .support-item:last-child {
+      margin-bottom: 0;
+    }
+    .support-item strong {
+      display: block;
+      color: var(--text-main);
+      margin-bottom: 0.25rem;
+    }
+    .support-item p {
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <a href="index.html" class="navbar-brand">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+      Sentinel DAST
+    </a>
+    <div class="navbar-links">
+      <a href="index.html">Home</a>
+      <a href="catalog.html">Vulnerability Catalog</a>
+      <a href="pricing.html">Pricing Tiers</a>
+      <a href="about.html" class="active">About Us</a>
+    </div>
+    <div class="navbar-links" id="auth-nav-links"></div>
+  </nav>
+
+  <div class="about-layout">
+    <div class="ad-vertical">
+      160x600 Sponsorship Ad Content Area (PRO Tier removes ads)
+    </div>
+    
+    <div class="main-content">
+      <!-- About Us Section -->
+      <div class="about-box">
+        <div class="text-muted mb-2">About Us</div>
+        <h2>Empowering Accessible Perimeter Analysis</h2>
+        <p class="mb-4">Our operational goals of the Sentinel DAST software covers modern logic software. Fighting for the innate accessibility sensitively coordinate in accessible security (cite: 2.1, 2.2).</p>
+        <p>Sentinel DAST is an argument speak with criterion response market accessible security to ensure, and understanding initiate in value in accessible security (cite: 2.1, 2.2).</p>
+      </div>
+
+      <!-- Contact Us Section -->
+      <div class="about-box">
+        <div class="text-muted mb-2 text-center">Contact Us</div>
+        <h2 class="text-center mb-4">Get in Touch</h2>
+        
+        <div class="contact-layout">
+          <form class="contact-form" onsubmit="event.preventDefault(); alert('Inquiry Submitted');">
+            <div class="form-group">
+              <label>Full Name</label>
+              <input type="text" class="input-field" />
+            </div>
+            <div class="form-group">
+              <label>Corporate Email Address</label>
+              <input type="email" class="input-field" />
+            </div>
+            <div class="form-group">
+              <label>Inquiry Classification Dropdown</label>
+              <select class="input-field" style="appearance: auto;">
+                <option>Technical Support</option>
+                <option>Billing</option>
+                <option>Enterprise Sales</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Message (cite: 2.1, 2.2)</label>
+              <textarea class="input-field"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Submit Inquiry</button>
+          </form>
+
+          <div class="support-channels">
+            <div class="support-item">
+              <strong>Slack Channel</strong>
+              <p>(Instant Support)</p>
+              <p class="text-muted">Get slack channels</p>
+            </div>
+            <div class="support-item">
+              <strong>Direct Email Support</strong>
+              <p>Direct email support</p>
+            </div>
+            <div class="support-item">
+              <strong>Support Portal</strong>
+              <p>(Open a Ticket)</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="ad-vertical">
+      Sponsorship Ad Content Area (PRO Tier removes ads)
+    </div>
+  </div>
+</body>
+</html>

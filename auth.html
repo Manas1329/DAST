@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sentinel DAST - Authentication</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <script src="js/main.js" defer></script>
+  <style>
+    .auth-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: calc(100vh - 70px);
+      padding: 2rem;
+    }
+    .auth-box {
+      width: 100%;
+      max-width: 450px;
+    }
+    .auth-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .auth-footer {
+      margin-top: 1.5rem;
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+    .auth-footer a {
+      color: var(--brand-blue);
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <a href="index.html" class="navbar-brand">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+      Sentinel DAST
+    </a>
+    <div class="navbar-links">
+      <a href="index.html">Home</a>
+    </div>
+  </nav>
+
+  <main class="auth-container">
+    <!-- Login Form -->
+    <div class="card auth-box" id="login-box">
+      <div class="auth-header">
+        <h2>Welcome Back to Sentinel</h2>
+      </div>
+      <form id="login-form">
+        <div class="form-group">
+          <label>Username or Email</label>
+          <input type="text" id="l-username" class="input-field" required />
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="l-password" class="input-field" required />
+        </div>
+        <div id="login-error" style="color:var(--brand-rose); font-size:0.85rem; margin-bottom:1rem; display:none;"></div>
+        <button type="submit" class="btn btn-primary" style="width: 100%;">Sign In</button>
+      </form>
+      <div class="auth-footer">
+        [ <a href="#">Forgot Password?</a> ] | [ Don't have an account? <a href="#" onclick="toggleAuth()">Sign Up</a> ]
+      </div>
+    </div>
+
+    <!-- Register Form -->
+    <div class="card auth-box hidden" id="register-box">
+      <div class="auth-header">
+        <h2>Create Your Account</h2>
+      </div>
+      <form id="register-form">
+        <div class="form-group">
+          <label>Username</label>
+          <input type="text" id="r-username" class="input-field" required />
+        </div>
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" id="r-email" class="input-field" required />
+        </div>
+        <div class="flex gap-4">
+          <div class="form-group" style="flex:1;">
+            <label>Password</label>
+            <input type="password" id="r-password" class="input-field" required />
+          </div>
+          <div class="form-group" style="flex:1;">
+            <label>Confirm Password</label>
+            <input type="password" id="r-confirm" class="input-field" required />
+          </div>
+        </div>
+        <div class="form-group flex items-center gap-2">
+          <input type="checkbox" id="terms" required />
+          <label for="terms" style="margin:0; font-size:0.8rem;">I accept the [ <a href="#" style="color:var(--brand-blue)">Terms of Service</a> ]</label>
+        </div>
+        <div id="register-error" style="color:var(--brand-rose); font-size:0.85rem; margin-bottom:1rem; display:none;"></div>
+        <button type="submit" class="btn btn-primary" style="width: 100%;">Create Account</button>
+      </form>
+      <div class="auth-footer">
+        Already have an account? [ <a href="#" onclick="toggleAuth()">Sign In</a> ]
+      </div>
+    </div>
+  </main>
+
+  <script>
+    function toggleAuth() {
+      document.getElementById('login-box').classList.toggle('hidden');
+      document.getElementById('register-box').classList.toggle('hidden');
+    }
+
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const u = document.getElementById('l-username').value;
+      const p = document.getElementById('l-password').value;
+      const err = document.getElementById('login-error');
+      try {
+        await Auth.login(u, p);
+        window.location.href = 'dashboard.html';
+      } catch (error) {
+        err.innerText = error.message;
+        err.style.display = 'block';
+      }
+    });
+
+    document.getElementById('register-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const u = document.getElementById('r-username').value;
+      const email = document.getElementById('r-email').value;
+      const p = document.getElementById('r-password').value;
+      const c = document.getElementById('r-confirm').value;
+      const err = document.getElementById('register-error');
+      
+      if(p !== c) {
+        err.innerText = "Passwords do not match";
+        err.style.display = 'block';
+        return;
+      }
+      
+      try {
+        await Auth.register(u, email, p);
+        // Auto login
+        await Auth.login(u, p);
+        window.location.href = 'dashboard.html';
+      } catch (error) {
+        err.innerText = error.message;
+        err.style.display = 'block';
+      }
+    });
+    
+    // Redirect if already logged in
+    document.addEventListener('DOMContentLoaded', async () => {
+      if(await Auth.getUser()) {
+        window.location.href = 'dashboard.html';
+      }
+    });
+  </script>
+</body>
+</html>
