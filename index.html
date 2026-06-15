@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sentinel DAST Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
+  <meta name="description" content="Enterprise level security assessment dashboard.">
+  <style>
+    .error-banner {
+      background: rgba(244, 63, 94, 0.1);
+      border: 1px solid var(--rose-500, #ef4444);
+      color: var(--rose-500, #ef4444);
+      padding: 1rem;
+      border-radius: 6px;
+      margin-bottom: 1.5rem;
+      display: none;
+      align-items: center;
+      gap: 0.75rem;
+      font-weight: 500;
+    }
+
+    .loading-overlay {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 0;
+      gap: 1rem;
+      min-height: 400px;
+    }
+
+    .loading-spinner {
+      animation: spin 1s linear infinite;
+      color: #3b82f6;
+    }
+
+    @keyframes spin {
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* Layout structural refinements */
+    .grid-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+    }
+
+    @media (max-width: 768px) {
+      .grid-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .remediation-box {
+      background-color: #0f172a;
+      border: 1px solid #334155;
+      padding: 0.75rem;
+      border-radius: 6px;
+      font-family: monospace;
+      color: #38bdf8;
+      margin-top: 0.5rem;
+      font-size: 0.85rem;
+      overflow-x: auto;
+    }
+
+    .badge-PASS,
+    .badge-SECURE,
+    .badge-CLOSED {
+      background: rgba(16, 185, 129, 0.1);
+      color: #10b981;
+      border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+
+    .badge-FAIL,
+    .badge-EXPOSED,
+    .badge-VULNERABLE {
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    .badge-OPEN {
+      background: rgba(245, 158, 11, 0.1);
+      color: #f59e0b;
+      border: 1px solid rgba(245, 158, 11, 0.2);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container" style="max-width: 1200px; margin: auto; padding: 2rem;">
+
+    <header class="app-header"
+      style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; background: #1e293b; padding: 1.5rem; border-radius: 8px; border: 1px solid #334155;">
+      <div class="brand" style="display: flex; gap: 1rem; align-items: center;">
+        <div class="brand-icon" style="background: #3b82f6; padding: 0.5rem; border-radius: 6px;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          </svg>
+        </div>
+        <div>
+          <h1 style="font-size: 1.25rem; font-weight: 700; margin: 0;">Sentinel <span
+              style="color: #3b82f6;">DAST</span></h1>
+          <p style="color: #94a3b8; font-size: 0.85rem; margin: 0;">Enterprise Assessment Framework</p>
+        </div>
+      </div>
+
+      <div class="target-input-group"
+        style="flex: 1; max-width: 500px; margin: 0 2rem; display: flex; items: center; background: #0f172a; padding: 0.5rem 1rem; border-radius: 6px; border: 1px solid #475569;">
+        <input type="text" id="target-input"
+          style="width: 100%; background: transparent; border: none; color: white; outline: none;"
+          placeholder="Enter target URL or IP (e.g., example.com)" value="google.com" />
+      </div>
+
+      <button id="btn-execute" class="btn btn-primary"
+        style="background: #3b82f6; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 6px; cursor: pointer; font-weight: bold;">
+        Execute Audit Suite
+      </button>
+    </header>
+
+    <div id="error-banner" class="error-banner">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+      <span id="error-message">Scan Failed.</span>
+    </div>
+
+    <div id="loading-state" class="loading-overlay">
+      <svg class="loading-spinner" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="4">
+        <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.1)" fill="none"></circle>
+        <path d="M21 12a9 9 0 1 1-6.219-8.56" stroke="#3b82f6"></path>
+      </svg>
+      <h2>Analyzing target infrastructure and mapping security posture...</h2>
+      <div id="loading-logs" style="margin-top: 1rem; width: 100%; max-width: 600px; background: #0f172a; padding: 1rem; border-radius: 6px; border: 1px solid #334155; font-family: monospace; font-size: 0.85rem; color: #38bdf8; min-height: 150px; text-align: left; display: flex; flex-direction: column; gap: 0.5rem;">
+      </div>
+    </div>
+
+    <main id="dashboard-grid" class="hidden">
+
+      <section class="card summary-block"
+        style="background: #1e293b; padding: 1.5rem; border-radius: 8px; border: 1px solid #334155; display: flex; gap: 2rem; align-items: center; mb: 1.5rem;">
+        <div class="progress-circle"
+          style="position: relative; width: 100px; height: 100px; background: #0f172a; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+          <svg viewBox="0 0 100 100" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform: rotate(-90deg);">
+            <circle cx="50" cy="50" r="45" fill="none" stroke="#334155" stroke-width="8"></circle>
+            <circle id="progress-value" cx="50" cy="50" r="45" fill="none" stroke="#10b981" stroke-width="8" stroke-dasharray="283" stroke-dashoffset="0" style="transition: stroke-dashoffset 1s ease-in-out, stroke 0.3s ease;"></circle>
+          </svg>
+          <div style="text-align: center; z-index: 1;">
+            <div id="score-text" style="font-size: 1.5rem; font-weight: 900;">0</div>
+            <div id="grade-text" style="font-size: 0.75rem; color: #94a3b8;">GRADE: -</div>
+          </div>
+        </div>
+
+        <div class="profile-details" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; flex: 1;">
+          <div><span style="color: #64748b; font-size: 0.8rem; display: block;">Target Domain</span><span
+              id="stat-domain" style="font-family: monospace; font-weight: 600;">-</span></div>
+          <div><span style="color: #64748b; font-size: 0.8rem; display: block;">Resolved IP Address</span><span
+              id="stat-ip" style="font-family: monospace; color: #3b82f6; font-weight: 600;">-</span></div>
+          <div><span style="color: #64748b; font-size: 0.8rem; display: block;">Scan Duration</span><span
+              id="stat-duration" style="font-weight: 600;">-</span></div>
+          <div><span style="color: #64748b; font-size: 0.8rem; display: block;">Last Audit Timestamp</span><span
+              id="stat-timestamp" style="color: #94a3b8; font-size: 0.85rem;">-</span></div>
+        </div>
+        <div>
+          <button id="btn-download"
+            style="background: #475569; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">Export
+            JSON</button>
+        </div>
+      </section>
+
+      <section class="card"
+        style="background: #1e293b; padding: 1.5rem; border-radius: 8px; border: 1px solid #334155; margin-top: 1.5rem;">
+        <h3 style="margin-top:0; color: #cbd5e1; display: flex; align-items: center; gap: 8px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          1. Dynamic Code Parameter & Output Filtration Sanitization
+        </h3>
+        <div id="sanitization-container"
+          style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+        </div>
+      </section>
+
+      <div class="grid-container">
+        <section class="card"
+          style="background: #1e293b; padding: 1.5rem; border-radius: 8px; border: 1px solid #334155;">
+          <h3 style="margin-top:0; color: #cbd5e1; display: flex; align-items: center; gap: 8px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+            2. Network Interface Services Map
+          </h3>
+          <div id="ports-container" style="margin-top: 1rem; display: flex; flex-direction: column; gap: 0.75rem;">
+          </div>
+        </section>
+
+        <section class="card"
+          style="background: #1e293b; padding: 1.5rem; border-radius: 8px; border: 1px solid #334155; display: flex; flex-direction: column; gap: 1rem;">
+          <h3 style="margin-top:0; color: #cbd5e1; display: flex; align-items: center; gap: 8px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+            3. Exposed Resource Pathways & Cryptography
+          </h3>
+
+          <div id="ssl-block"
+            style="padding: 1rem; background: #0f172a; border-radius: 6px; border-left: 4px solid #10b981;">
+            <strong>SSL Certificate Integrity:</strong> <span id="ssl-span" class="badge">N/A</span>
+            <p id="ssl-desc" style="font-size: 0.85rem; color: #94a3b8; margin: 0.25rem 0 0 0;"></p>
+          </div>
+
+          <div id="paths-container" style="display: flex; flex-direction: column; gap: 0.75rem;">
+          </div>
+        </section>
+      </div>
+
+      <section class="card"
+        style="background: #1e293b; padding: 1.5rem; border-radius: 8px; border: 1px solid #334155; margin-top: 1.5rem;">
+        <h3 style="margin-top:0; color: #cbd5e1; display: flex; align-items: center; gap: 8px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          4. Passive Header Compliance Metric Configurations
+        </h3>
+        <div id="headers-container" style="margin-top: 1rem; display: flex; flex-direction: column; gap: 1rem;">
+        </div>
+      </section>
+
+      <section class="card"
+        style="background: #1e293b; padding: 1.5rem; border-radius: 8px; border: 1px solid #334155; margin-top: 1.5rem;">
+        <h3 style="margin-top:0; color: #cbd5e1; display: flex; align-items: center; gap: 8px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path><path d="M2 12h20"></path></svg>
+          5. Connection Encryption & Session Security
+        </h3>
+        <div id="session-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+        </div>
+      </section>
+
+      <section class="card"
+        style="background: #1e293b; padding: 1.5rem; border-radius: 8px; border: 1px solid #334155; margin-top: 1.5rem;">
+        <h3 style="margin-top:0; color: #cbd5e1; display: flex; align-items: center; gap: 8px;">
+          📆 Historical Compliance Assessments & Logs
+        </h3>
+        <div id="history-container" style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1rem;">
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script>
+    let lastReportData = null;
+
+    document.getElementById('btn-execute').addEventListener('click', async function () {
+      const inputVal = document.getElementById('target-input').value.trim();
+      if (!inputVal) return;
+
+      let targetUrl = inputVal;
+      if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+        targetUrl = 'https://' + targetUrl;
+      }
+
+      const loader = document.getElementById('loading-state');
+      const errorBanner = document.getElementById('error-banner');
+      const grid = document.getElementById('dashboard-grid');
+
+      loader.style.display = 'flex';
+      errorBanner.style.display = 'none';
+      grid.classList.add('hidden');
+
+      const logMessages = [
+        "[➔] Initializing core pipeline security handshake matrices...",
+        "[➔] Resolving target infrastructure network IP profiles...",
+        "[➔] Testing transport layer redirection integrity models...",
+        "[➔] Auditing passive configuration HTTP header parameters...",
+        "[➔] Querying input sanitization boundaries...",
+        "[➔] Evaluating local resource footprint paths...",
+        "[➔] Finalizing dynamic risk grading algorithms..."
+      ];
+      
+      const logContainer = document.getElementById('loading-logs');
+      logContainer.innerHTML = '';
+      let logIndex = 0;
+      
+      const logInterval = setInterval(() => {
+        if (logIndex < logMessages.length) {
+          const logLine = document.createElement('div');
+          logLine.innerText = logMessages[logIndex];
+          logContainer.appendChild(logLine);
+          logIndex++;
+        }
+      }, 600);
+
+      const startTime = performance.now();
+
+      try {
+        const response = await fetch('http://127.0.0.1:8002/api/v1/compliance', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ target_url: targetUrl })
+        });
+
+        if (!response.ok) {
+            let errorMsg = `API Endpoint dropped error status: ${response.status}`;
+            try {
+                const errorData = await response.json();
+                if (errorData && errorData.detail) errorMsg = errorData.detail;
+            } catch (e) {}
+            throw new Error(errorMsg);
+        }
+        const data = await response.json();
+        const duration = ((performance.now() - startTime) / 1000).toFixed(3);
+
+        lastReportData = data;
+        lastReportData.duration_seconds = duration;
+        lastReportData.timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
+
+        renderUserInterface(lastReportData);
+
+      } catch (err) {
+        console.error(err);
+        document.getElementById('error-message').innerText = `Execution Pipeline Interrupted: ${err.message}.`;
+        errorBanner.style.display = 'flex';
+      } finally {
+        clearInterval(logInterval);
+        loader.style.display = 'none';
+      }
+    });
+
+    function renderUserInterface(res) {
+      // 1. Core Profile Header
+      document.getElementById('stat-domain').innerText = res.target;
+      document.getElementById('stat-ip').innerText = res.resolved_ip;
+      document.getElementById('stat-duration').innerText = `${res.duration_seconds}s`;
+      document.getElementById('stat-timestamp').innerText = res.timestamp;
+      document.getElementById('score-text').innerText = res.compliance_score.score;
+      document.getElementById('grade-text').innerText = `GRADE: ${res.compliance_score.grade}`;
+
+      // Calculate circle offset based on score
+      const scoreNum = res.compliance_score.score;
+      const progressValueCircle = document.getElementById('progress-value');
+      
+      // The circle circumference is approximately 283 (2 * pi * 45)
+      const maxDash = 283;
+      const dashOffset = maxDash - (maxDash * scoreNum) / 100;
+      
+      setTimeout(() => {
+        progressValueCircle.style.strokeDashoffset = dashOffset;
+        
+        let colorHex = '#ef4444'; // rose
+        if (scoreNum >= 90) colorHex = '#10b981'; // emerald
+        else if (scoreNum >= 75) colorHex = '#3b82f6'; // blue
+        else if (scoreNum >= 60) colorHex = '#f59e0b'; // amber
+        
+        progressValueCircle.style.stroke = colorHex;
+        document.getElementById('grade-text').style.color = colorHex;
+      }, 100);
+
+      // 2. Map Input Sanitization Parameters
+      const sanitizationBlock = document.getElementById('sanitization-container');
+      sanitizationBlock.innerHTML = `
+            <div style="padding: 1rem; background: #0f172a; border-radius:6px; border-left: 4px solid ${res.input_validation.database_sanitization.status === 'SECURE' ? '#10b981' : '#ef4444'}">
+                <strong>Database Query Escape Metrics:</strong> 
+                <span class="badge badge-${res.input_validation.database_sanitization.status}">${res.input_validation.database_sanitization.status}</span>
+                <p style="font-size:0.8rem; color:#94a3b8; margin: 0.25rem 0 0 0;">${res.input_validation.database_sanitization.details}</p>
+            </div>
+            <div style="padding: 1rem; background: #0f172a; border-radius:6px; border-left: 4px solid ${res.input_validation.parameter_validation.status === 'SECURE' ? '#10b981' : '#ef4444'}">
+                <strong>Cross-Site Script Frame Isolation:</strong> 
+                <span class="badge badge-${res.input_validation.parameter_validation.status}">${res.input_validation.parameter_validation.status}</span>
+                <p style="font-size:0.8rem; color:#94a3b8; margin: 0.25rem 0 0 0;">${res.input_validation.parameter_validation.details}</p>
+            </div>
+        `;
+
+      // 3. Map Service Connection Channels (Ports)
+      const portsBlock = document.getElementById('ports-container');
+      portsBlock.innerHTML = res.port_metrics.map(p => `
+            <div style="display:flex; justify-content:space-between; align-items:center; background:#0f172a; padding:0.75rem; border-radius:6px;">
+                <span style="font-size:0.9rem;">Port <strong>${p.port}</strong> — ${p.service}</span>
+                <span class="badge badge-${p.status}">${p.status}</span>
+            </div>
+        `).join('');
+
+      // 4. Map SSL Box Context
+      const isSslValid = res.ssl.valid;
+      document.getElementById('ssl-span').innerText = isSslValid ? "VALID" : "FAIL";
+      document.getElementById('ssl-span').className = `badge badge-${isSslValid ? 'PASS' : 'FAIL'}`;
+      document.getElementById('ssl-block').style.borderLeftColor = isSslValid ? '#10b981' : '#ef4444';
+      document.getElementById('ssl-desc').innerText = isSslValid
+        ? `Certificate secure. Connection verified for ${res.ssl.days_remaining} more days until ${res.ssl.expiry_date.split('T')[0]}.`
+        : `SSL Validation Exception: ${res.ssl.error || 'Expired/Untrusted signature'}`;
+
+      // 5. Map Multi-path Resource Inventories
+      const pathsBlock = document.getElementById('paths-container');
+      pathsBlock.innerHTML = res.exposed_directories.map(d => `
+            <div style="padding:0.75rem; background:#0f172a; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <span style="font-family:monospace; font-size:0.9rem;">${d.path}</span>
+                    <div style="font-size:0.75rem; color:#64748b;">${d.details}</div>
+                </div>
+                <span class="badge badge-${d.status}">${d.status}</span>
+            </div>
+        `).join('');
+
+      // 6. Map Compliance Response Configurations
+      const headersBlock = document.getElementById('headers-container');
+      headersBlock.innerHTML = '';
+
+      Object.entries(res.headers.headers).forEach(([headerName, info]) => {
+        const passed = info.present;
+        const card = document.createElement('div');
+        card.style.cssText = `padding:1rem; background:#0f172a; border-radius:8px; border-left: 4px solid ${passed ? '#10b981' : '#ef4444'}`;
+
+        let mitigationHtml = '';
+        if (!passed && info.mitigation) {
+          mitigationHtml = `
+                    <details style="margin-top:0.75rem; border-top: 1px solid #1e293b; padding-top: 0.5rem;">
+                        <summary style="font-size:0.8rem; color:#ef4444; font-weight:bold; cursor: pointer; display: flex; align-items: center; gap: 6px; outline: none;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+                            📋 Click to View Architecture Hardening Blueprint
+                        </summary>
+                        <div class="remediation-box" style="margin-top: 0.5rem;">${info.mitigation}</div>
+                    </details>
+                `;
+        }
+
+        card.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-family:monospace; font-weight:bold; font-size:0.9rem;">${headerName}</span>
+                    <span class="badge badge-${passed ? 'PASS' : 'FAIL'}">${passed ? 'PRESENT' : 'MISSING'}</span>
+                </div>
+                <p style="font-size:0.8rem; color:#94a3b8; margin:0.25rem 0 0 0;">${passed ? 'Header configured correctly matching structural policy requirements. Value: ' + info.value : 'Directive missing from response packet streams.'}</p>
+                ${mitigationHtml}
+            `;
+        headersBlock.appendChild(card);
+      });
+
+      // 7. Map Session & Redirect Data
+      const sessionBlock = document.getElementById('session-container');
+      if (sessionBlock && res.https_redirection && res.session_cookies) {
+        sessionBlock.innerHTML = `
+            <div style="padding: 1rem; background: #0f172a; border-radius:6px; border-left: 4px solid ${res.https_redirection.status === 'PASS' ? '#10b981' : '#ef4444'}">
+                <strong>Port 80 to 443 Redirection:</strong> 
+                <span class="badge badge-${res.https_redirection.status}">${res.https_redirection.status}</span>
+                <p style="font-size:0.8rem; color:#94a3b8; margin: 0.25rem 0 0 0;">${res.https_redirection.details}</p>
+            </div>
+            <div style="padding: 1rem; background: #0f172a; border-radius:6px; border-left: 4px solid ${res.session_cookies.status === 'PASS' ? '#10b981' : '#ef4444'}">
+                <strong>Session Cookie Constraints:</strong> 
+                <span class="badge badge-${res.session_cookies.status}">${res.session_cookies.status}</span>
+                <p style="font-size:0.8rem; color:#94a3b8; margin: 0.25rem 0 0 0;">${res.session_cookies.details}</p>
+            </div>
+        `;
+      }
+
+      document.getElementById('dashboard-grid').classList.remove('hidden');
+      loadHistory();
+    }
+
+    async function loadHistory() {
+      try {
+        const res = await fetch('http://127.0.0.1:8002/api/v1/history');
+        const historyData = await res.json();
+        const historyBlock = document.getElementById('history-container');
+        
+        if (!historyData || historyData.length === 0) {
+          historyBlock.innerHTML = '<div style="color:#94a3b8; font-size: 0.9rem; padding: 1rem;">No historical audits found.</div>';
+          return;
+        }
+
+        historyBlock.innerHTML = `
+          <table style="width: 100%; border-collapse: collapse; margin-top: 0.5rem; font-size: 0.9rem;">
+            <thead>
+              <tr style="border-bottom: 1px solid #334155; color: #94a3b8; text-align: left;">
+                <th style="padding: 0.75rem 1rem;">Timestamp</th>
+                <th style="padding: 0.75rem 1rem;">Target Domain</th>
+                <th style="padding: 0.75rem 1rem;">Score</th>
+                <th style="padding: 0.75rem 1rem; text-align: center;">Letter Grade</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${historyData.map(record => `
+                <tr style="border-bottom: 1px solid #1e293b; background: #0f172a;">
+                  <td style="padding: 0.75rem 1rem; color: #64748b;">${new Date(record.timestamp).toLocaleString()}</td>
+                  <td style="padding: 0.75rem 1rem; font-family: monospace; font-weight: bold; color: #cbd5e1;">${record.target_domain}</td>
+                  <td style="padding: 0.75rem 1rem; font-weight: bold; color: ${record.compliance_score >= 90 ? '#10b981' : record.compliance_score >= 70 ? '#3b82f6' : record.compliance_score >= 60 ? '#f59e0b' : '#ef4444'}">${record.compliance_score}</td>
+                  <td style="padding: 0.75rem 1rem; text-align: center;">
+                    <span class="badge badge-${record.compliance_score >= 60 ? 'PASS' : 'FAIL'}" style="min-width:30px; display:inline-block;">${record.performance_grade}</span>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+      } catch (err) {
+        console.error("Failed to load history:", err);
+      }
+    }
+
+    // Load history on initial page load
+    loadHistory();
+
+    // Export handler logic
+    document.getElementById('btn-download').addEventListener('click', function () {
+      if (!lastReportData) return;
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(lastReportData, null, 2));
+      const dlAnchor = document.createElement('a');
+      dlAnchor.setAttribute("href", dataStr);
+      dlAnchor.setAttribute("download", `Security_Compliance_Log.json`);
+      document.body.appendChild(dlAnchor);
+      dlAnchor.click();
+      dlAnchor.remove();
+    });
+  </script>
+</body>
+
+</html>
