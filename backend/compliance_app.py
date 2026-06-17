@@ -173,18 +173,35 @@ def check_standard_paths(url: str) -> list:
             status = response.status_code
             is_exposed = status == 200
             
+            if is_exposed:
+                if path == "/robots.txt":
+                    details = "File public and accessible for search engine crawler directory routing."
+                    severity = "INFO"
+                else:
+                    details = f"HTTP Status {status}. {description}"
+                    severity = "HIGH" if "txt" not in path else "INFO"
+            else:
+                if path == "/robots.txt":
+                    details = "Path isolated. File should be public."
+                    severity = "HIGH"
+                else:
+                    details = "Path successfully isolated from external reads."
+                    severity = "INFO"
+            
             path_metrics.append({
                 "path": path,
                 "status": "EXPOSED" if is_exposed else "SECURE",
-                "severity": "HIGH" if (is_exposed and "txt" not in path) else "INFO",
-                "details": f"HTTP Status {status}. {description}" if is_exposed else "Path successfully isolated from external reads."
+                "severity": severity,
+                "details": details
             })
         except requests.RequestException:
+            severity = "HIGH" if path == "/robots.txt" else "SAFE"
+            details = "Unreachable or securely drop-filtered." if path != "/robots.txt" else "Unreachable. File should be public."
             path_metrics.append({
                 "path": path,
-                "status": "SECURE",
-                "severity": "SAFE",
-                "details": "Unreachable or securely drop-filtered."
+                "status": "SECURE" if path != "/robots.txt" else "VULNERABLE",
+                "severity": severity,
+                "details": details
             })
             
     return path_metrics
@@ -279,27 +296,41 @@ def audit_session_cookies(url: str) -> dict:
         
     try:
         response = requests.get(url, timeout=5, allow_redirects=True)
-        raw_cookies = response.headers.get('Set-Cookie')
+        raw_cookies = response.headers.get('Set-Cookie', '')
         
-        if not raw_cookies:
-            return {"status": "SECURE", "details": "No stateful tracking cookies dropped during initialization lifecycle."}
-            
         raw_cookies_lower = raw_cookies.lower()
         has_secure = 'secure' in raw_cookies_lower
         has_httponly = 'httponly' in raw_cookies_lower
         has_samesite = 'samesite=lax' in raw_cookies_lower or 'samesite=strict' in raw_cookies_lower
         
-        if has_secure and has_httponly and has_samesite:
-            return {"status": "SECURE", "details": "Cookies properly restricted with Secure, HttpOnly, and SameSite flags."}
-        else:
-            missing = []
-            if not has_secure: missing.append("Secure")
-            if not has_httponly: missing.append("HttpOnly")
-            if not has_samesite: missing.append("SameSite")
-            return {"status": "VULNERABLE", "details": f"Cookies missing required constraints: {', '.join(missing)}."}
+        # If no cookies are set, we can consider it secure or vulnerable depending on interpretation, 
+        # but to provide the check items, we will show them as missing if cookies are set insecurely.
+        # If no cookies, we show SECURE because there are no stateful tracking risks.
+        if not raw_cookies:
+            has_secure = True
+            has_httponly = True
+            has_samesite = True
+            
+        overall_status = "SECURE" if (has_secure and has_httponly and has_samesite) else "VULNERABLE"
+        
+        return {
+            "status": overall_status,
+            "checks": {
+                "HttpOnly Flag": {"status": "SECURE" if has_httponly else "VULNERABLE"},
+                "Secure Flag": {"status": "SECURE" if has_secure else "VULNERABLE"},
+                "SameSite Attribute": {"status": "SECURE" if has_samesite else "VULNERABLE"}
+            }
+        }
             
     except requests.RequestException as e:
-        return {"status": "VULNERABLE", "details": f"Request failed: {str(e)}"}
+        return {
+            "status": "VULNERABLE", 
+            "checks": {
+                "HttpOnly Flag": {"status": "VULNERABLE"},
+                "Secure Flag": {"status": "VULNERABLE"},
+                "SameSite Attribute": {"status": "VULNERABLE"}
+            }
+        }
 
 def audit_cross_origin_security(url: str) -> dict:
     """Audits the server response headers for insecure cross-origin configurations and unknown CDNs."""
@@ -311,18 +342,32 @@ def audit_cross_origin_security(url: str) -> dict:
         headers = response.headers
         
         acao = headers.get('Access-Control-Allow-Origin', '')
-        if acao == '*':
-            return {"status": "VULNERABLE", "details": "Access-Control-Allow-Origin header configured with dangerous wildcard symbol ('*')."}
+        acao_status = "VULNERABLE" if acao == '*' else "SECURE"
             
         content = response.text.lower()
         untrusted_cdns = ["polyfill.io", "bootcss.com"]
+        malicious_status = "SECURE"
         for cdn in untrusted_cdns:
             if cdn in content:
-                return {"status": "VULNERABLE", "details": f"Page includes external scripts from potentially untrusted CDN: {cdn}"}
+                malicious_status = "VULNERABLE"
+                break
         
-        return {"status": "SECURE", "details": "Cross-Origin headers secure and no untrusted third-party scripts detected."}
+        overall = "SECURE" if acao_status == "SECURE" and malicious_status == "SECURE" else "VULNERABLE"
+        return {
+            "status": overall, 
+            "checks": {
+                "Access-Control-Allow-Origin": {"status": acao_status},
+                "Malicious External Scripts": {"status": malicious_status}
+            }
+        }
     except requests.RequestException as e:
-        return {"status": "VULNERABLE", "details": f"Request failed: {str(e)}"}
+        return {
+            "status": "VULNERABLE", 
+            "checks": {
+                "Access-Control-Allow-Origin": {"status": "VULNERABLE"},
+                "Malicious External Scripts": {"status": "VULNERABLE"}
+            }
+        }
 
 def calculate_compliance_score(missing_headers_count: int, network_issues: int, session_issues: int, directory_leaks: int) -> dict:
     """Dynamically calculates balanced integrity ratings using weighted configuration parameters."""

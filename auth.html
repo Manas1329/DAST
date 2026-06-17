@@ -150,8 +150,16 @@
       }
     });
     
-    // Redirect if already logged in
+    // Redirect if already logged in or show messages
     document.addEventListener('DOMContentLoaded', async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('msg') === 'sign_in_to_scan') {
+        const err = document.getElementById('login-error');
+        err.innerText = "Please sign in to execute an infrastructure scan.";
+        err.style.color = "var(--brand-amber)";
+        err.style.display = 'block';
+      }
+      
       if(await Auth.getUser()) {
         window.location.href = 'dashboard.html';
       }
