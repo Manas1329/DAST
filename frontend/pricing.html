@@ -137,14 +137,19 @@
     }
 
     .faq-answer {
-      padding: 0 1.25rem 1.25rem 1.25rem;
+      padding: 0 1.25rem;
       color: var(--text-muted);
       font-size: 0.95rem;
-      display: none;
+      max-height: 0;
+      opacity: 0;
+      overflow: hidden;
+      transition: all 0.3s ease;
     }
 
     .faq-item.active .faq-answer {
-      display: block;
+      padding: 0 1.25rem 1.25rem 1.25rem;
+      max-height: 500px;
+      opacity: 1;
     }
 
     .faq-item.active .faq-icon {
@@ -255,36 +260,33 @@
   <div class="faq-section">
     <div class="faq-item">
       <div class="faq-question" onclick="this.parentElement.classList.toggle('active')">
-        Remediation Blueprints for headers? [cite: 2.2]
+        What is the difference between Community and Professional Pro?
         <svg class="faq-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-          stroke-width="2" style="transition: transform 0.2s;">
+          stroke-width="2" style="transition: transform 0.3s ease;">
           <polyline points="6 9 12 15 18 9"></polyline>
         </svg>
       </div>
-      <div class="faq-answer">Yes, PRO users have access to fully copy-pasteable Nginx and Apache server blocks that
-        remediate missing header flaws dynamically.</div>
+      <div class="faq-answer">The Community Tier provides 3 passive scans daily focusing on HTTP headers, SSL certificates, and basic layout checks. Pro unlocks unlimited deep active scanning, including SQLi matrices, XSS checks, port scanning, and actionable remediation snippets.</div>
     </div>
     <div class="faq-item">
       <div class="faq-question" onclick="this.parentElement.classList.toggle('active')">
-        Does Sentinel Blueprints for headers? [cite: 2.2]
+        How do the Remediation Blueprints work?
         <svg class="faq-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-          stroke-width="2" style="transition: transform 0.2s;">
+          stroke-width="2" style="transition: transform 0.3s ease;">
           <polyline points="6 9 12 15 18 9"></polyline>
         </svg>
       </div>
-      <div class="faq-answer">Sentinel generates tailored server configuration files ensuring headers like
-        Strict-Transport-Security are implemented accurately.</div>
+      <div class="faq-answer">When Pro users encounter a vulnerability, Sentinel provides fully copy-pasteable Nginx, Apache, and application-layer code blocks tailored to patch the exact security flaw dynamically.</div>
     </div>
     <div class="faq-item">
       <div class="faq-question" onclick="this.parentElement.classList.toggle('active')">
-        Does Sentinel DAST any poenution headers? [cite: 2.2]
+        Is it safe to run Sentinel against my live production servers?
         <svg class="faq-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-          stroke-width="2" style="transition: transform 0.2s;">
+          stroke-width="2" style="transition: transform 0.3s ease;">
           <polyline points="6 9 12 15 18 9"></polyline>
         </svg>
       </div>
-      <div class="faq-answer">We dynamically test for X-Frame-Options, Content-Security-Policy, and other critical
-        missing headers during every scan.</div>
+      <div class="faq-answer">Yes. Sentinel's scans are carefully metered to avoid denial-of-service conditions. However, active injection payloads (like SQLi testing) may safely trigger your web application firewalls (WAF) or generate standard error logs on your backend.</div>
     </div>
   </div>
 </body>

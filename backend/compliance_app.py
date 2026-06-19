@@ -36,14 +36,19 @@ class LoginRequest(BaseModel):
 
 # Database Initialization
 def init_db():
-    conn = sqlite3.connect('compliance_history.db')
+    conn = sqlite3.connect('backend/compliance_history.db')
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS scans
                  (id INTEGER PRIMARY KEY AUTOINCREMENT,
                   target_domain TEXT,
                   compliance_score INTEGER,
                   performance_grade TEXT,
-                  timestamp TEXT)''')
+                  timestamp TEXT,
+                  user_id INTEGER)''')
+    try:
+        c.execute('ALTER TABLE scans ADD COLUMN user_id INTEGER')
+    except sqlite3.OperationalError:
+        pass
                   
     c.execute('''CREATE TABLE IF NOT EXISTS users
                  (id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -72,7 +77,7 @@ def get_current_user(authorization: str = Header(None)):
         return None
     token = authorization.split(" ")[1]
     
-    conn = sqlite3.connect('compliance_history.db')
+    conn = sqlite3.connect('backend/compliance_history.db')
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     c.execute("SELECT u.id, u.username, u.email, u.is_pro FROM sessions s JOIN users u ON s.user_id = u.id WHERE s.token = ? AND s.expires_at > ?", 
@@ -83,12 +88,12 @@ def get_current_user(authorization: str = Header(None)):
 
 init_db()
 
-def log_scan_result(target_domain: str, score: int, grade: str):
+def log_scan_result(target_domain: str, score: int, grade: str, user_id: int):
     try:
-        conn = sqlite3.connect('compliance_history.db')
+        conn = sqlite3.connect('backend/compliance_history.db')
         c = conn.cursor()
-        c.execute("INSERT INTO scans (target_domain, compliance_score, performance_grade, timestamp) VALUES (?, ?, ?, ?)",
-                  (target_domain, score, grade, datetime.utcnow().isoformat() + "Z"))
+        c.execute("INSERT INTO scans (target_domain, compliance_score, performance_grade, timestamp, user_id) VALUES (?, ?, ?, ?, ?)",
+                  (target_domain, score, grade, datetime.utcnow().isoformat() + "Z", user_id))
         conn.commit()
         conn.close()
     except Exception as e:
@@ -383,7 +388,8 @@ def calculate_compliance_score(missing_headers_count: int, network_issues: int, 
     return {"score": score, "grade": grade}
 
 @app.post("/api/v1/compliance")
-def run_compliance_check(request: ComplianceRequest):
+def run_compliance_check(request: ComplianceRequest, user: dict = Depends(get_current_user)):
+    user_id = user["id"] if user else None
     start_time = time.time()
     url = request.target_url
     
@@ -420,7 +426,7 @@ def run_compliance_check(request: ComplianceRequest):
     )
         
     # Persist metrics to SQLite history log
-    log_scan_result(domain, compliance["score"], compliance["grade"])
+    log_scan_result(domain, compliance["score"], compliance["grade"], user_id)
     
     execution_duration = round(time.time() - start_time, 3)
     
@@ -440,12 +446,16 @@ def run_compliance_check(request: ComplianceRequest):
     }
 
 @app.get("/api/v1/history")
-def get_compliance_history():
+def get_compliance_history(user: dict = Depends(get_current_user)):
     try:
-        conn = sqlite3.connect('compliance_history.db')
+        user_id = user["id"] if user else None
+        conn = sqlite3.connect('backend/compliance_history.db')
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
-        c.execute("SELECT * FROM scans ORDER BY timestamp DESC LIMIT 5")
+        if user_id:
+            c.execute("SELECT * FROM scans WHERE user_id = ? ORDER BY timestamp DESC LIMIT 5", (user_id,))
+        else:
+            c.execute("SELECT * FROM scans WHERE user_id IS NULL ORDER BY timestamp DESC LIMIT 5")
         rows = c.fetchall()
         conn.close()
         
@@ -457,7 +467,7 @@ def get_compliance_history():
 def register_user(req: RegisterRequest):
     pwd_hash, salt = hash_password(req.password)
     try:
-        conn = sqlite3.connect('compliance_history.db')
+        conn = sqlite3.connect('backend/compliance_history.db')
         c = conn.cursor()
         c.execute("INSERT INTO users (username, email, password_hash, salt, is_pro) VALUES (?, ?, ?, ?, ?)",
                   (req.username, req.email, pwd_hash, salt, 0)) # Default free tier
@@ -471,7 +481,7 @@ def register_user(req: RegisterRequest):
 
 @app.post("/api/v1/login")
 def login_user(req: LoginRequest):
-    conn = sqlite3.connect('compliance_history.db')
+    conn = sqlite3.connect('backend/compliance_history.db')
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     c.execute("SELECT id, password_hash, salt FROM users WHERE username = ? OR email = ?", (req.username, req.username))

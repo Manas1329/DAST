@@ -35,8 +35,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (target) {
     document.getElementById('target-input').value = target;
     startScan();
+  } else {
+    document.getElementById('history-content').style.display = "block";
+    loadHistory();
   }
-  loadHistory();
 });
 
 async function startScan() {
@@ -46,9 +48,11 @@ async function startScan() {
   const overlay = document.getElementById("loading-overlay");
   const logFeed = document.getElementById("log-feed");
   const content = document.getElementById("dashboard-content");
+  const historyContent = document.getElementById("history-content");
   
   overlay.style.display = "flex";
   content.style.display = "none";
+  if (historyContent) historyContent.style.display = "none";
   logFeed.innerHTML = "";
   
   const logs = [
@@ -84,9 +88,13 @@ async function startScan() {
   typeWriter();
 
   try {
+    const token = localStorage.getItem('sentinel_token');
+    const headers = { "Content-Type": "application/json" };
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+
     const res = await fetch("http://127.0.0.1:8002/api/v1/compliance", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: headers,
       body: JSON.stringify({ target_url: target })
     });
     
@@ -101,7 +109,7 @@ async function startScan() {
     overlay.style.display = "none";
     content.style.display = "block";
     renderDashboard(data);
-    loadHistory();
+    // History is intentionally not shown on the result page
     
   } catch (error) {
     alert("Execution Pipeline Interrupted: Failed to fetch. Ensure backend is live.");
@@ -113,12 +121,13 @@ let lastScanData = null;
 
 function renderDashboard(data) {
   lastScanData = data;
-  const isPro = true; // Temporary override for testing: window.currentUser && window.currentUser.is_pro === 1;
-
+  let isPro = true; // Temporarily unlocked for all users
+  // if(window.currentUser) {
+  //     isPro = window.currentUser.is_pro === 1 || window.currentUser.is_pro === true;
+  // }
   const username = window.currentUser ? window.currentUser.username : "Guest User";
-  const roleName = isPro ? "Professional Auditor" : "Compliance Basics (Free)";
   const sessionTextEl = document.getElementById('active-session-text');
-  if(sessionTextEl) sessionTextEl.innerText = `Active Session: ${username} / Profile: ${roleName}`;
+  if(sessionTextEl) sessionTextEl.innerText = `Active Session: ${username}`;
 
   document.getElementById('meta-domain').innerText = data.target;
   document.getElementById('meta-ip').innerText = `[${data.resolved_ip}]`;
@@ -296,7 +305,10 @@ function applyTierTriage(contentId, cardId, lockId, htmlContent, isPro) {
 
 async function loadHistory() {
   try {
-    const res = await fetch("http://127.0.0.1:8002/api/v1/history");
+    const token = localStorage.getItem('sentinel_token');
+    const headers = {};
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    const res = await fetch("http://127.0.0.1:8002/api/v1/history", { headers });
     if(res.ok) {
       const data = await res.json();
       let html = '';
@@ -316,7 +328,15 @@ async function loadHistory() {
 
 function exportJSON(e) {
   e.preventDefault();
-  const isPro = true; // window.currentUser && window.currentUser.is_pro === 1;
+  let userContextStr = "Active Session: Guest User / Profile: Unauthenticated";
+  let isPro = false;
+  if(window.currentUser) {
+      isPro = window.currentUser.is_pro === 1 || window.currentUser.is_pro === true;
+      userContextStr = `Active Session: ${window.currentUser.username} / Profile: ${isPro ? 'Professional Auditor' : 'Basic Auditor'}`;
+  }
+  
+  const upHeader = document.querySelector('.user-profile span');
+  if(upHeader) upHeader.innerText = userContextStr;
   if(!isPro) return alert("Raw JSON Export is a Premium feature.");
   if(!lastScanData) return alert("No scan data to export.");
   const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(lastScanData, null, 2));
@@ -330,7 +350,10 @@ function exportJSON(e) {
 
 async function exportPNG(e) {
   e.preventDefault();
-  const isPro = true; // window.currentUser && window.currentUser.is_pro === 1;
+  let isPro = false;
+  if(window.currentUser) {
+      isPro = window.currentUser.is_pro === 1 || window.currentUser.is_pro === true;
+  }
   if(!isPro) return alert("PNG Snapshot Export is a Premium feature.");
   if(!lastScanData) return alert("No scan data to export.");
   const content = document.getElementById('dashboard-content');
@@ -350,7 +373,13 @@ async function exportPDF(e) {
   e.preventDefault();
   if(!lastScanData) return alert("No scan data to export.");
   
-  const isPro = true; // window.currentUser && window.currentUser.is_pro === 1;
+  let isPro = false;
+  let userContextStr = "Active Session: Guest User / Profile: Unauthenticated";
+  if(window.currentUser) {
+      isPro = window.currentUser.is_pro === 1 || window.currentUser.is_pro === true;
+      userContextStr = `Active Session: ${window.currentUser.username} / Profile: ${isPro ? 'Professional Auditor' : 'Basic Auditor'}`;
+  }
+  
   const container = document.createElement('div');
   container.style.position = 'absolute';
   container.style.left = '-9999px';
@@ -361,7 +390,6 @@ async function exportPDF(e) {
   container.style.padding = '40px';
   container.style.fontFamily = 'Arial, sans-serif';
   
-  const username = window.currentUser ? window.currentUser.username : "Guest User";
   const dt = new Date().toLocaleString();
   
   let gradeColor = '#ef4444';
@@ -369,12 +397,10 @@ async function exportPDF(e) {
   else if (lastScanData.compliance_score.score >= 70) gradeColor = '#f59e0b';
   
   let html = `
-    <h1 style="color:#0f172a; border-bottom:2px solid #e2e8f0; padding-bottom:10px; margin-bottom:20px;">Sentinel DAST Security Report</h1>
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
-      <div style="font-size:14px;">
-        <p style="margin:5px 0;"><strong>Generated By:</strong> ${username}</p>
-        <p style="margin:5px 0;"><strong>Date / Time:</strong> ${dt}</p>
-        <p style="margin:5px 0;"><strong>Tier:</strong> ${isPro ? "Professional Auditor" : "Compliance Basics (Free)"}</p>
+    <div style="border-bottom:2px solid #cbd5e1; padding-bottom:20px; margin-bottom:30px; display:flex; justify-content:space-between; align-items:flex-start;">
+      <div>
+        <h1 style="margin:0; color:#0f172a; font-size:24px;">Sentinel DAST Report</h1>
+        <div style="color:#64748b; font-size:14px; margin-top:8px;">${userContextStr} | Generated: ${dt}</div>
       </div>
       <div style="text-align:right;">
         <div style="font-size:12px; color:#64748b; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Overall Grade</div>

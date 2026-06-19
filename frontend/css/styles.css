@@ -71,6 +71,11 @@ p { color: var(--text-muted); }
   gap: 2rem;
   align-items: center;
 }
+.navbar > .navbar-links:nth-child(2):not(:last-child) {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
 .navbar-links a {
   color: var(--text-primary);
   text-decoration: none;

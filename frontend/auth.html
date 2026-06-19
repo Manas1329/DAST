@@ -64,7 +64,7 @@
         <button type="submit" class="btn btn-primary" style="width: 100%;">Sign In</button>
       </form>
       <div class="auth-footer">
-        [ <a href="#">Forgot Password?</a> ] | [ Don't have an account? <a href="#" onclick="toggleAuth()">Sign Up</a> ]
+        [ <a href="javascript:void(0)">Forgot Password?</a> ] | [ Don't have an account? <a href="javascript:void(0)" onclick="toggleAuth()">Sign Up</a> ]
       </div>
     </div>
 
@@ -94,13 +94,13 @@
         </div>
         <div class="form-group flex items-center gap-2">
           <input type="checkbox" id="terms" required />
-          <label for="terms" style="margin:0; font-size:0.8rem;">I accept the [ <a href="#" style="color:var(--brand-blue)">Terms of Service</a> ]</label>
+          <label for="terms" style="margin:0; font-size:0.8rem;">I accept the [ <a href="terms.html" style="color:var(--brand-blue)" target="_blank">Terms of Service</a> ]</label>
         </div>
         <div id="register-error" style="color:var(--brand-rose); font-size:0.85rem; margin-bottom:1rem; display:none;"></div>
         <button type="submit" class="btn btn-primary" style="width: 100%;">Create Account</button>
       </form>
       <div class="auth-footer">
-        Already have an account? [ <a href="#" onclick="toggleAuth()">Sign In</a> ]
+        Already have an account? [ <a href="javascript:void(0)" onclick="toggleAuth()">Sign In</a> ]
       </div>
     </div>
   </main>
@@ -118,7 +118,7 @@
       const err = document.getElementById('login-error');
       try {
         await Auth.login(u, p);
-        window.location.href = 'dashboard.html';
+        window.location.href = 'index.html';
       } catch (error) {
         err.innerText = error.message;
         err.style.display = 'block';
@@ -143,7 +143,7 @@
         await Auth.register(u, email, p);
         // Auto login
         await Auth.login(u, p);
-        window.location.href = 'dashboard.html';
+        window.location.href = 'index.html';
       } catch (error) {
         err.innerText = error.message;
         err.style.display = 'block';
@@ -161,7 +161,7 @@
       }
       
       if(await Auth.getUser()) {
-        window.location.href = 'dashboard.html';
+        window.location.href = 'index.html';
       }
     });
   </script>

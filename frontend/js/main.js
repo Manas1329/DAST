@@ -68,12 +68,15 @@ async function initNavbar() {
   if (!navLinks) return;
 
   if (window.currentUser) {
+    const isDashboard = window.location.pathname.includes('dashboard.html');
+    const scanBtn = isDashboard ? '' : `<a href="dashboard.html" class="btn btn-primary" style="padding: 0.4rem 1rem;">Previous Scans</a>`;
+
     navLinks.innerHTML = `
       <span style="color: var(--text-muted); font-size: 0.85rem; margin-right: 1rem;">
-        Welcome, ${window.currentUser.username} ${window.currentUser.is_pro ? '<span style="color:var(--brand-emerald)">[PRO]</span>' : ''}
+        Welcome, ${window.currentUser.username}
       </span>
-      <a href="dashboard.html" class="btn btn-primary" style="padding: 0.4rem 1rem;">Dashboard</a>
-      <a href="#" id="logout-btn" style="color: var(--brand-rose); font-size: 0.85rem; text-decoration: none; margin-left: 1rem; font-weight: 500;">Logout</a>
+      ${scanBtn}
+      <a href="javascript:void(0)" id="logout-btn" style="color: var(--brand-rose); font-size: 0.85rem; text-decoration: none; margin-left: 1rem; font-weight: 500;">Logout</a>
     `;
 
     document.getElementById('logout-btn').addEventListener('click', (e) => {

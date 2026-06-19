@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -18,33 +19,46 @@
       min-height: 85vh;
       z-index: 1;
     }
+
     .grid-background {
       position: absolute;
-      bottom: 0; left: -50%; right: -50%; height: 60%;
-      background-image: 
-        linear-gradient(rgba(59, 130, 246, 0.3) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(59, 130, 246, 0.3) 1px, transparent 1px);
+      bottom: 0;
+      left: -50%;
+      right: -50%;
+      height: 60%;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.3) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.3) 1px, transparent 1px);
       background-size: 60px 60px;
       transform: perspective(500px) rotateX(60deg) translateY(100px) translateZ(-200px);
       animation: gridMove 10s linear infinite;
       z-index: -1;
-      mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%);
-      -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%);
+      mask-image: linear-gradient(to top, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0) 100%);
+      -webkit-mask-image: linear-gradient(to top, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0) 100%);
     }
+
     @keyframes gridMove {
-      0% { background-position: 0 0; }
-      100% { background-position: 0 60px; }
+      0% {
+        background-position: 0 0;
+      }
+
+      100% {
+        background-position: 0 60px;
+      }
     }
+
     .hero h1 {
       font-size: 3.5rem;
       max-width: 800px;
       margin-bottom: 1.5rem;
     }
+
     .hero p {
       font-size: 1.15rem;
       max-width: 600px;
       margin-bottom: 3rem;
     }
+
     .hero-input-group {
       display: flex;
       gap: 1rem;
@@ -55,6 +69,7 @@
       border-radius: 8px;
       border: 1px solid var(--bg-accent);
     }
+
     .hero-input-group input {
       flex: 1;
       background: transparent;
@@ -64,6 +79,7 @@
       font-size: 1rem;
       outline: none;
     }
+
     .hero-scan-limit {
       margin-top: 1.5rem;
       display: inline-flex;
@@ -75,21 +91,28 @@
       border-radius: 50px;
       backdrop-filter: blur(4px);
     }
+
     .limit-icon {
       background: rgba(245, 158, 11, 0.2);
       color: var(--brand-amber);
-      width: 28px; height: 28px;
+      width: 28px;
+      height: 28px;
       border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
+
     .limit-text {
       font-size: 0.85rem;
       color: var(--text-primary);
     }
+
     .limit-text strong {
       color: var(--brand-amber);
       font-weight: 600;
     }
+
     .limit-upgrade {
       font-size: 0.8rem;
       font-weight: 600;
@@ -100,9 +123,11 @@
       text-decoration: none;
       transition: 0.2s;
     }
+
     .limit-upgrade:hover {
       background: #fcd34d;
     }
+
     .feature-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -111,6 +136,7 @@
       width: 100%;
       max-width: 1000px;
     }
+
     .feature-card {
       background: var(--bg-secondary);
       border: 1px solid var(--bg-accent);
@@ -122,22 +148,24 @@
       gap: 1rem;
       text-align: center;
     }
+
     .feature-icon {
       width: 48px;
       height: 48px;
       border-radius: 12px;
-      background: rgba(255,255,255,0.05);
+      background: rgba(255, 255, 255, 0.05);
       display: flex;
       align-items: center;
       justify-content: center;
     }
+
     .ad-placeholder {
       margin-top: 4rem;
       width: 100%;
       max-width: 728px;
       height: 90px;
       border: 1px dashed var(--bg-accent);
-      background: rgba(0,0,0,0.2);
+      background: rgba(0, 0, 0, 0.2);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -148,10 +176,14 @@
     }
   </style>
 </head>
+
 <body>
   <nav class="navbar">
     <a href="index.html" class="navbar-brand">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+      </svg>
       Sentinel DAST
     </a>
     <div class="navbar-links">
@@ -168,16 +200,21 @@
   <main class="hero">
     <div class="grid-background"></div>
     <h1>Automated Infrastructure Compliance & Security Auditor</h1>
-    <p>Instantly map public web parameters, verify cryptographic SSL states, and analyze interface sanitization anomalies safely.</p>
-    
+    <p>Instantly map public web parameters, verify cryptographic SSL states, and analyze interface sanitization
+      anomalies safely.</p>
+
     <div class="hero-input-group card-glow">
       <input type="text" id="target-input" placeholder="Target URL or IP (example.com)" />
       <button class="btn btn-primary" onclick="executeScan()">Execute Audit Suite</button>
     </div>
-    
+
     <div class="hero-scan-limit">
       <div class="limit-icon">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+          <line x1="12" y1="9" x2="12" y2="13"></line>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
       </div>
       <div class="limit-text">
         <strong>Free Tier Limit:</strong> 3 automated audits remaining today.
@@ -188,29 +225,43 @@
     <div class="feature-grid">
       <div class="feature-card" style="z-index: 10;">
         <div class="feature-icon" style="color: var(--brand-rose);">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
         </div>
         <h4>Configuration Baselines</h4>
-        <p style="font-size: 0.9rem; color: var(--text-muted); text-align: left; padding-top: 0.5rem; line-height: 1.6;">
-          Deep inspection of standard web ports and server headers to ensure your baseline architecture is actively mitigating known vulnerabilities like clickjacking and unencrypted transit.
+        <p
+          style="font-size: 0.9rem; color: var(--text-muted); text-align: left; padding-top: 0.5rem; line-height: 1.6;">
+          Deep inspection of standard web ports and server headers to ensure your baseline architecture is actively
+          mitigating known vulnerabilities like clickjacking and unencrypted transit.
         </p>
       </div>
       <div class="feature-card" style="z-index: 10;">
         <div class="feature-icon" style="color: var(--brand-emerald);">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+          </svg>
         </div>
         <h4>Perimeter Diagnostics</h4>
-        <p style="font-size: 0.9rem; color: var(--text-muted); text-align: left; padding-top: 0.5rem; line-height: 1.6;">
-          Aggressively probe for common misconfigurations across Cross-Origin Resource Sharing (CORS) rules and trace active malicious scripts linked from unverified Content Delivery Networks.
+        <p
+          style="font-size: 0.9rem; color: var(--text-muted); text-align: left; padding-top: 0.5rem; line-height: 1.6;">
+          Aggressively probe for common misconfigurations across Cross-Origin Resource Sharing (CORS) rules and trace
+          active malicious scripts linked from unverified Content Delivery Networks.
         </p>
       </div>
       <div class="feature-card" style="z-index: 10;">
         <div class="feature-icon" style="color: var(--brand-emerald);">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
         </div>
         <h4>Sanitization Checks</h4>
-        <p style="font-size: 0.9rem; color: var(--text-muted); text-align: left; padding-top: 0.5rem; line-height: 1.6;">
-          Thoroughly evaluate database parameter validation and input sanitization layers to guarantee your active endpoints securely reject arbitrary SQL commands and cross-site scripts.
+        <p
+          style="font-size: 0.9rem; color: var(--text-muted); text-align: left; padding-top: 0.5rem; line-height: 1.6;">
+          Thoroughly evaluate database parameter validation and input sanitization layers to guarantee your active
+          endpoints securely reject arbitrary SQL commands and cross-site scripts.
         </p>
       </div>
     </div>
@@ -219,29 +270,30 @@
       MONETIZATION FRAME (728x90)
     </div>
   </main>
-  
+
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-        if (!window.DEBUG_MODE) {
-            const ad = document.querySelector('.ad-placeholder');
-            if (ad) {
-                ad.style.border = 'none';
-                ad.style.background = 'transparent';
-                ad.innerHTML = '';
-            }
+      if (!window.DEBUG_MODE) {
+        const ad = document.querySelector('.ad-placeholder');
+        if (ad) {
+          ad.style.border = 'none';
+          ad.style.background = 'transparent';
+          ad.innerHTML = '';
         }
+      }
     });
 
     function executeScan() {
-        if (!window.DEBUG_MODE && !window.currentUser) {
-            window.location.href = "auth.html?msg=sign_in_to_scan";
-            return;
-        }
-        const url = document.getElementById('target-input').value;
-        if(url) {
-            window.location.href = `dashboard.html?target=${encodeURIComponent(url)}`;
-        }
+      if (!window.DEBUG_MODE && !window.currentUser) {
+        window.location.href = "auth.html?msg=sign_in_to_scan";
+        return;
+      }
+      const url = document.getElementById('target-input').value;
+      if (url) {
+        window.location.href = `dashboard.html?target=${encodeURIComponent(url)}`;
+      }
     }
   </script>
 </body>
+
 </html>
